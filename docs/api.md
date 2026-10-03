@@ -35,6 +35,12 @@ Password needs at least 6 characters. Returns the new user (never the password).
 
 Returns `{ "accessToken": "...", "user": { ... } }`. `401` for a wrong email or password (same message for both, on purpose).
 
+### POST /auth/guest
+
+No body. Returns a token for a guest session (valid for a day) and a guest user with `id: 0` and `isGuest: true`. Nothing is saved in the database.
+
+Guests can read everything a member can (posts, comments, trending, users), but every write returns `403`: posting, voting, commenting, profile changes and anything under `/messages`. On the socket they get `presence` and `trending-posts`, and `send-message` replies with an error.
+
 ### GET /auth/me
 
 The logged in user.
