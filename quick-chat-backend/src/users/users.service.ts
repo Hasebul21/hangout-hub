@@ -1,11 +1,14 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
+import sharp from 'sharp';
 import { Repository } from 'typeorm';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { User } from './user.entity.js';
 
 @Injectable()
@@ -48,5 +51,50 @@ export class UsersService {
 
   findAll() {
     return this.users.find({ order: { userName: 'ASC' } });
+  }
+
+  async updateProfile(
+    id: number,
+    changes: UpdateProfileDto,
+    image?: Express.Multer.File,
+  ) {
+    const user = await this.findById(id);
+
+    for (const [key, value] of Object.entries(changes)) {
+      if (value !== undefined) {
+        // an empty field clears the value
+        (user as any)[key] = value.trim() === '' ? null : value.trim();
+      }
+    }
+    if (image) {
+      user.avatar = await this.resizeAvatar(image);
+    }
+
+    await this.users.save(user);
+    return this.findById(id);
+  }
+
+  async findAvatar(id: number) {
+    const user = await this.users
+      .createQueryBuilder('user')
+      .addSelect('user.avatar')
+      .where('user.id = :id', { id })
+      .getOne();
+    return user?.avatar ?? null;
+  }
+
+  private async resizeAvatar(image: Express.Multer.File) {
+    if (!image.mimetype.startsWith('image/')) {
+      throw new BadRequestException('Profile picture must be an image');
+    }
+    try {
+      return await sharp(image.buffer)
+        .rotate()
+        .resize(400, 400, { fit: 'cover' })
+        .jpeg({ quality: 75 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException('Could not read that image');
+    }
   }
 }

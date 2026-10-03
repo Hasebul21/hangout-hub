@@ -41,6 +41,9 @@ export class User {
   @Column({ nullable: true })
   instagram: string;
 
+  @Column({ type: 'bytea', nullable: true, select: false })
+  avatar: Buffer | null;
+
   @CreateDateColumn()
   createdAt: Date;
 
