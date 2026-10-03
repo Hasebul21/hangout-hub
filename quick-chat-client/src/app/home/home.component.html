@@ -1,12 +1,8 @@
 <app-navbar></app-navbar>
 
 <div class="home-container">
-  <!-- LEFT SIDEBAR -->
   <aside class="sidebar">
-    <!-- Profile Card -->
     <app-profile-section [loggedInUser]="loggedInUser"></app-profile-section>
-
-    <!-- Quick Actions -->
     <div class="quick-actions">
       <h3 class="section-title">Quick Actions</h3>
       <a routerLink="/chatroom" class="action-btn chat-btn">
@@ -22,49 +18,43 @@
         <span>Edit Profile</span>
       </a>
     </div>
-
-    <!-- Suggested Users -->
     <div class="suggested-users">
       <h3 class="section-title">People You May Know</h3>
-      <div class="suggested-user" *ngFor="let u of suggestedUsers">
-        <img [src]="u.avatar"
-          (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'"
-          class="sugg-avatar" alt="avatar" />
-        <div class="sugg-info">
-          <span class="sugg-name">{{ u.name }}</span>
-          <span class="sugg-title">{{ u.title }}</span>
+      @for (user of suggestedUsers; track user.id) {
+        <div class="suggested-user">
+          <img [src]="avatarUrl(user.id)" (error)="useDefaultAvatar($event)" class="sugg-avatar" alt="avatar" />
+          <div class="sugg-info">
+            <span class="sugg-name">{{ user.userName }}</span>
+            <span class="sugg-title">{{ user.professionalTitle || 'QuickChat member' }}</span>
+          </div>
+          <a routerLink="/chatroom" [queryParams]="{ user: user.id }" class="sugg-chat-btn" title="Chat">
+            <mat-icon>send</mat-icon>
+          </a>
         </div>
-        <a [routerLink]="['/chatroom']" class="sugg-chat-btn" title="Chat">
-          <mat-icon>send</mat-icon>
-        </a>
-      </div>
+      } @empty {
+        <p class="sugg-empty">No one else here yet.</p>
+      }
     </div>
   </aside>
-
-  <!-- MAIN FEED -->
   <main class="main-feed">
-    <!-- Composer -->
     <div class="composer-card">
       <div class="composer-top">
         <img
-          [src]="loggedInUser?.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + loggedInUser?.userName"
-          (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'"
+          [src]="avatarUrl(loggedInUser?.id, loggedInUser?.updatedAt)" (error)="useDefaultAvatar($event)"
           class="composer-avatar" alt="You" />
         <textarea class="composer-textarea"
           [placeholder]="'What\'s on your mind, ' + (loggedInUser?.userName || '') + '?'" [(ngModel)]="newPostContent"
-          rows="3" maxlength="200" [class.has-content]="newPostContent?.length > 0"></textarea>
+          rows="3" [maxlength]="maxLength" [class.has-content]="newPostContent.length > 0"></textarea>
       </div>
       <div class="composer-footer">
-        <span class="char-counter" [class.near-limit]="newPostContent?.length > 170">
-          {{ newPostContent?.length || 0 }} / 200
+        <span class="char-counter" [class.near-limit]="newPostContent.length > maxLength - 30">
+          {{ newPostContent.length }} / {{ maxLength }}
         </span>
-        <button class="post-btn" [disabled]="!newPostContent?.trim()" (click)="postPublicly()">
+        <button class="post-btn" [disabled]="!newPostContent.trim() || posting" (click)="postPublicly()">
           <mat-icon>send</mat-icon> Post
         </button>
       </div>
     </div>
-
-    <!-- Trending Section Label -->
     <div class="feed-section-header">
       <mat-icon class="fire-icon">local_fire_department</mat-icon>
       <span>Trending Posts</span>
