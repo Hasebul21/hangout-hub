@@ -21,7 +21,12 @@
           <span class="status-dot" [class.online]="isOnline(user)"></span>
         </div>
         <div class="contact-details">
-          <span class="contact-name">{{ user.userName }}</span>
+          <span class="contact-name">
+            {{ user.userName }}
+            @if (user.isOwner) {
+              <nz-tag nzColor="purple" class="owner-tag">Owner</nz-tag>
+            }
+          </span>
           <span class="contact-sub">{{ statusText(user) }}</span>
         </div>
       </div>

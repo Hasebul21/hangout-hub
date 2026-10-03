@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 import { Presence } from '../models/message';
 import { User } from '../models/user';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
@@ -8,7 +9,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-user-status',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NzTagModule],
   templateUrl: './user-status.component.html',
   styleUrl: './user-status.component.scss',
 })
@@ -27,7 +28,8 @@ export class UserStatusComponent {
     const term = this.searchTerm.toLowerCase().trim();
     return this.users
       .filter(user => !term || user.userName.toLowerCase().includes(term))
-      .sort((a, b) => Number(this.isOnline(b)) - Number(this.isOnline(a)));
+      .sort((a, b) => Number(b.isOwner) - Number(a.isOwner)
+        || Number(this.isOnline(b)) - Number(this.isOnline(a)));
   }
 
   isOnline(user: User): boolean {
