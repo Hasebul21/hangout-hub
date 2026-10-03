@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -13,9 +14,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-import { sockJsUrl } from '../ws.util';
+import { SocketService } from '../service/socket.service';
 
 @Component({
   selector: 'app-profile-section',
@@ -39,36 +38,20 @@ import { sockJsUrl } from '../ws.util';
   templateUrl: './profile-section.component.html',
   styleUrl: './profile-section.component.scss'
 })
-export class ProfileSectionComponent implements OnChanges {
+export class ProfileSectionComponent implements OnInit, OnDestroy {
   @Input() loggedInUser: any = null;
+  trendingPostsCount = 0;
+  private subscription?: Subscription;
 
-  private stompClient: any | undefined;
-  private isSubscribed: boolean = false;
-  trendingPostsCount: number = 0;
+  constructor(private socket: SocketService) { }
 
-  ngOnChanges(): void {
-    console.log(this.isSubscribed);
-    console.log(this.loggedInUser);
-    this.trendingPostsCount = this.loggedInUser.publishedPostCount;
-    if (!this.isSubscribed) {
-      console.log('isSubscribed');
-      this.connectSocket();
-    }
+  ngOnInit(): void {
+    this.subscription = this.socket.on<{ count: number }>('post-count').subscribe(data => {
+      this.trendingPostsCount = data.count;
+    });
   }
 
-
-  connectSocket() {
-    const socket = new SockJS(sockJsUrl());
-    this.stompClient = Stomp.over(socket);
-    this.stompClient.connect({}, () => {
-      this.isSubscribed = true;
-      console.log('Connected to WebSocket for post count');
-      this.stompClient.subscribe(`/user/${this.loggedInUser.id}/post-count/queue`, response => {
-        console.log(response);
-        this.trendingPostsCount = JSON.parse(response.body);
-      });
-    }, (error) => {
-      console.log(error);
-    });
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
   }
 }

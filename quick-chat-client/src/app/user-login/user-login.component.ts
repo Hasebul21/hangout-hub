@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { AuthService } from '../service/auth.service';
+import { SocketService } from '../service/socket.service';
 
 @Component({
   selector: 'app-user-login',
@@ -16,6 +17,7 @@ export class UserLoginComponent {
   loading = false;
 
   constructor(private auth: AuthService,
+    private socket: SocketService,
     private router: Router,
     private toastr: ToastrService) { }
 
@@ -29,6 +31,7 @@ export class UserLoginComponent {
     this.auth.login(this.email.trim(), this.password).subscribe({
       next: user => {
         this.loading = false;
+        this.socket.connect(this.auth.token!);
         this.toastr.success(`Welcome back, ${user.userName}!`);
         this.router.navigate(['/home']);
       },

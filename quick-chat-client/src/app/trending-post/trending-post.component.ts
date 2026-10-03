@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -14,10 +15,7 @@ import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { NavbarComponent } from '../navbar/navbar.component';
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-import { sockJsUrl } from '../ws.util';
-import { PostService } from '../service/post.service';
+import { SocketService } from '../service/socket.service';
 
 @Component({
   selector: 'app-trending-post',
@@ -40,40 +38,21 @@ import { PostService } from '../service/post.service';
   templateUrl: './trending-post.component.html',
   styleUrl: './trending-post.component.scss'
 })
-export class TrendingPostComponent implements OnInit, OnChanges {
-
-  private stompClient: any | undefined;
-  private isSubscribed: boolean = false;
+export class TrendingPostComponent implements OnInit, OnDestroy {
   trendingPosts: any[] = [];
-  isLoading: boolean = true;
+  isLoading = true;
+  private subscription?: Subscription;
 
-  constructor(private postService: PostService) { }
+  constructor(private socket: SocketService) { }
 
   ngOnInit(): void {
-    if (!this.isSubscribed) {
-      this.connectSocket();
-    }
-  }
-  ngOnChanges(changes: SimpleChanges): void {
-    if (!this.isSubscribed) {
-      this.connectSocket();
-    }
-  }
-
-  connectSocket() {
-    const socket = new SockJS(sockJsUrl());
-    this.stompClient = Stomp.over(socket);
-    this.stompClient.connect({}, () => {
-      this.isSubscribed = true;
-      this.stompClient.subscribe(`/topic/public/treding-post`, response => {
-        const realPosts = JSON.parse(response.body);
-        this.trendingPosts = realPosts;
-        this.isLoading = false;
-      });
-      this.postService.getMostLikedPost().subscribe();
-    }, (error) => {
-      console.log(error);
+    this.subscription = this.socket.on<any[]>('trending-posts').subscribe(posts => {
+      this.trendingPosts = posts;
+      this.isLoading = false;
     });
   }
 
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+  }
 }
