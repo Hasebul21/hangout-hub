@@ -13,6 +13,20 @@ export interface Post {
   updatedAt: string;
 }
 
+export type Reaction = 'like' | 'dislike';
+
+// what the client sees: the voter lists stay on the server
+export function toPostView(post: Post, userId: number) {
+  const { likedBy, dislikedBy, ...rest } = post;
+  let myReaction: Reaction | null = null;
+  if (likedBy.includes(userId)) {
+    myReaction = 'like';
+  } else if (dislikedBy.includes(userId)) {
+    myReaction = 'dislike';
+  }
+  return { ...rest, myReaction };
+}
+
 export const postMappings = {
   properties: {
     id: { type: 'keyword' },
