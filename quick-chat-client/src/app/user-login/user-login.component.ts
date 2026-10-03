@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { AuthService } from '../service/auth.service';
 import { SocketService } from '../service/socket.service';
 
@@ -19,11 +19,11 @@ export class UserLoginComponent {
   constructor(private auth: AuthService,
     private socket: SocketService,
     private router: Router,
-    private toastr: ToastrService) { }
+    private msg: NzMessageService) { }
 
   login() {
     if (!this.email || !this.password) {
-      this.toastr.warning('Please enter your email and password');
+      this.msg.warning('Please enter your email and password');
       return;
     }
 
@@ -32,12 +32,12 @@ export class UserLoginComponent {
       next: user => {
         this.loading = false;
         this.socket.connect(this.auth.token!);
-        this.toastr.success(`Welcome back, ${user.userName}!`);
+        this.msg.success(`Welcome back, ${user.userName}!`);
         this.router.navigate(['/home']);
       },
       error: err => {
         this.loading = false;
-        this.toastr.error(err.error?.message || 'Login failed');
+        this.msg.error(err.error?.message || 'Login failed');
       }
     });
   }

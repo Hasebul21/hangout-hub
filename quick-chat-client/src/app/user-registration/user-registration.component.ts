@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { AuthService } from '../service/auth.service';
 
 @Component({
@@ -19,7 +19,7 @@ export class UserRegistrationComponent {
 
   constructor(private authService: AuthService,
     private router: Router,
-    private toastr: ToastrService) { }
+    private msg: NzMessageService) { }
 
   register() {
     if (this.disableSubmit()) {
@@ -30,13 +30,13 @@ export class UserRegistrationComponent {
     this.authService.register(this.userName.trim(), this.email.trim(), this.password).subscribe({
       next: () => {
         this.loading = false;
-        this.toastr.success('Account created, you can log in now');
+        this.msg.success('Account created, you can log in now');
         this.router.navigate(['/login']);
       },
       error: err => {
         this.loading = false;
         const message = err.error?.message;
-        this.toastr.error(Array.isArray(message) ? message[0] : message || 'Registration failed');
+        this.msg.error(Array.isArray(message) ? message[0] : message || 'Registration failed');
       }
     });
   }

@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../service/auth.service';
 import { UserService } from '../service/user.service';
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { Router } from '@angular/router';
 import { NavbarComponent } from "../navbar/navbar.component";
 
@@ -29,7 +29,7 @@ export class UserProfileComponent {
 
   constructor(private authService: AuthService,
     private userService: UserService,
-    private toastr: ToastrService,
+    private msg: NzMessageService,
     private router: Router
   ) { }
 
@@ -57,11 +57,11 @@ export class UserProfileComponent {
     this.userService.updateProfile(formData).subscribe({
       next: (response) => {
         this.authService.setCurrentUser(response);
-        this.toastr.success('Profile updated successfully!', 'Success');
+        this.msg.success('Profile updated successfully!');
         this.router.navigate(['/home']);
       },
       error: (error) => {
-        this.toastr.error('Failed to update profile.', 'Error');
+        this.msg.error('Failed to update profile.');
       }
     });
   }

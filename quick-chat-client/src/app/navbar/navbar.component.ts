@@ -5,7 +5,7 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { Router, RouterModule } from '@angular/router';
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { User } from '../models/user';
 import { AuthService } from '../service/auth.service';
 import { SocketService } from '../service/socket.service';
@@ -25,7 +25,7 @@ export class NavbarComponent implements OnInit {
 
   constructor(private auth: AuthService,
     private socket: SocketService,
-    private toastr: ToastrService,
+    private msg: NzMessageService,
     private router: Router) { }
 
   ngOnInit() {
@@ -37,7 +37,7 @@ export class NavbarComponent implements OnInit {
     this.socket.disconnect();
     this.auth.logout();
     this.loggedInUser = null;
-    this.toastr.success('You have been logged out');
+    this.msg.success('You have been logged out');
     this.router.navigate(['/login']);
   }
 }

@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { Subscription } from 'rxjs';
 import { Message } from '../models/message';
 import { User } from '../models/user';
@@ -38,7 +38,7 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
 
   constructor(private chatService: ChatService,
     private socket: SocketService,
-    private toastr: ToastrService) { }
+    private msg: NzMessageService) { }
 
   ngOnInit(): void {
     this.subscription = this.socket.on<Message>('message').subscribe(message => {
@@ -88,14 +88,14 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
         content
       });
       if (result.error) {
-        this.toastr.error(result.error);
+        this.msg.error(result.error);
       } else {
         this.messages.push(result);
         this.content = '';
         this.scrollToBottom = true;
       }
     } catch {
-      this.toastr.error('Message could not be sent, check your connection');
+      this.msg.error('Message could not be sent, check your connection');
     } finally {
       this.sending = false;
     }
