@@ -38,21 +38,19 @@ export class SeedService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    // several servers can start at the same time, only one of them should seed
-    const runner = this.dataSource.createQueryRunner();
-    await runner.connect();
+    // Several servers can start at the same time, only one of them should seed.
+    // A transaction lock works through connection poolers, a session lock doesn't.
     try {
-      await runner.query('SELECT pg_advisory_lock($1)', [SEED_LOCK]);
-      await this.seed();
+      await this.dataSource.transaction(async (manager) => {
+        await manager.query('SELECT pg_advisory_xact_lock($1)', [SEED_LOCK]);
+        await this.seed();
+      });
     } catch (err) {
       // a failed seed should never stop the app from starting
       this.logger.error(
         'Seeding failed',
         err instanceof Error ? err.stack : err,
       );
-    } finally {
-      await runner.query('SELECT pg_advisory_unlock($1)', [SEED_LOCK]);
-      await runner.release();
     }
   }
 
