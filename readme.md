@@ -1,41 +1,46 @@
 # Hangout Hub
 
-A small social app: chat one to one in real time, share posts, like and comment, and see who is online.
+A small social app I built to try out NestJS with Angular. You can chat with people one to one in real time, write posts, like and comment on them, and see who's online.
 
-Built with NestJS, Angular and PostgreSQL.
+Live: https://hangout-hub.vercel.app
 
-## Features
+## What it does
 
-- Sign up and log in (passwords hashed with bcrypt, JWT for the API and the socket)
-- Private chat over Socket.IO with message history
-- Online status and "last seen", typing indicator, unread badges and notifications
+- Sign up and log in
+- Private chat that updates instantly, with typing status, unread counts and "last seen"
 - Search inside a conversation
-- Posts with likes and dislikes (one vote per person), comments, edit and delete
-- Trending posts that update live
-- Feed search by author, keyword and date range
-- Profile page with a picture upload (resized on the server)
+- Posts with likes, dislikes and comments. You can edit or delete your own.
+- A trending list on the home page that updates as people vote
+- Feed search by author, by text and by date
+- Profile page with a picture
 
-## Project layout
+When you sign up, my account is pinned at the top of your contacts, so there's always someone to message. The famous names you see (Elon Musk and so on) are demo accounts with some sample posts and chats. They're tagged "Demo" and nobody can log in as them.
+
+## Tech
+
+- Backend: NestJS 12, TypeORM, PostgreSQL, Socket.IO, JWT
+- Frontend: Angular 19, ng-zorro-antd (Ant Design), Socket.IO client
+- Hosting: Vercel (client), Render (backend), Neon (database)
 
 ```
-hangout-hub-backend/   NestJS API and Socket.IO gateway
-hangout-hub-client/    Angular app (ng-zorro-antd + Angular Material icons)
-docker-compose.yml     Postgres and both apps
+hangout-hub-backend/   the API and the socket server
+hangout-hub-client/    the Angular app
+docs/                  notes on the design, the API and deployment
+docker-compose.yml     Postgres, plus both apps if you want everything in Docker
+render.yaml            Render setup for the backend
 ```
 
-Everything (accounts, pictures, posts, comments, reactions and messages) is stored in PostgreSQL. Who is online is kept in memory on the server.
+## Running it locally
 
-## Running locally
+You need Node 22 or newer and Docker.
 
-You need Node 22+ and Docker.
-
-Start the database:
+Start Postgres:
 
 ```bash
 npm run services
 ```
 
-Backend (http://localhost:8080):
+Then the backend, on http://localhost:8080:
 
 ```bash
 cd hangout-hub-backend
@@ -44,7 +49,7 @@ npm install
 npm run start:dev
 ```
 
-Client (http://localhost:4200):
+And the client, on http://localhost:4200:
 
 ```bash
 cd hangout-hub-client
@@ -52,36 +57,23 @@ npm install
 npm start
 ```
 
-Or run everything in Docker with `npm start` from the root.
+The first start creates the owner account and the demo content. Locally the owner logs in with `hasebulhassan21@gmail.com` and the default password from `src/seed/seed-data.ts`, unless you set `OWNER_PASSWORD` in `.env`.
 
-On the first start the backend creates the owner account and a few demo accounts with some posts, comments and chats so the app isn't empty. Demo accounts can't be logged into.
+If you'd rather not install anything, `npm start` in the root runs the whole thing in Docker.
+
+To try the chat with two people, sign up a second account in another tab. Logins are kept per tab, so both can be open at once.
 
 ## Tests
 
-The end to end tests boot the whole API against the local services:
+The backend has end to end tests that start the real app against your local Postgres and go through sign up, posts, votes, comments, chat, typing, unread counts and search:
 
 ```bash
 cd hangout-hub-backend
 npm run test:e2e
 ```
 
-## Configuration
+## More detail
 
-Backend environment variables (see `hangout-hub-backend/.env.example`):
-
-| Variable                 | Notes                                          |
-| ------------------------ | ---------------------------------------------- |
-| `PORT`                   | defaults to 8080                               |
-| `ALLOWED_ORIGINS`        | comma separated list of client urls            |
-| `DATABASE_URL`           | Postgres connection string                     |
-| `DATABASE_SSL`           | `true` for hosted Postgres                     |
-| `DB_SYNCHRONIZE`         | create/update tables on start, default `true`  |
-| `JWT_SECRET`             | required                                       |
-| `OWNER_PASSWORD`         | password for the owner account                 |
-
-The client reads the API url from `src/environments/environment.ts` (and `environment.prod.ts` for production builds).
-
-## Deployment
-
-- Backend: Render, using `render.yaml` (Docker, free plan). Set `DATABASE_URL` and `OWNER_PASSWORD` when creating it.
-- Client: Vercel, using the root `vercel.json`.
+- [How it's put together](docs/architecture.md)
+- [API and socket events](docs/api.md)
+- [Deployment](docs/deployment.md)
