@@ -8,7 +8,22 @@ import { randomUUID } from 'crypto';
 import { ElasticService } from '../elastic/elastic.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
-import { Post, POSTS_INDEX, postMappings } from './post.js';
+import { Post, POSTS_INDEX, postMappings, Reaction } from './post.js';
+
+// Toggles the user's vote. Liking removes an earlier dislike and the other way
+// round, clicking the same button twice takes the vote back.
+const REACT_SCRIPT = `
+  def mine = params.type == 'like' ? ctx._source.likedBy : ctx._source.dislikedBy;
+  def other = params.type == 'like' ? ctx._source.dislikedBy : ctx._source.likedBy;
+  if (mine.contains(params.userId)) {
+    mine.removeIf(id -> id == params.userId);
+  } else {
+    mine.add(params.userId);
+    other.removeIf(id -> id == params.userId);
+  }
+  ctx._source.likeCount = ctx._source.likedBy.size();
+  ctx._source.dislikeCount = ctx._source.dislikedBy.size();
+`;
 
 @Injectable()
 export class PostsService implements OnModuleInit {
@@ -73,6 +88,16 @@ export class PostsService implements OnModuleInit {
       'DELETE',
       `/${POSTS_INDEX}/_doc/${encodeURIComponent(id)}?refresh=true`,
     );
+  }
+
+  async react(id: string, userId: number, type: Reaction) {
+    await this.findOne(id);
+    await this.elastic.request(
+      'POST',
+      `/${POSTS_INDEX}/_update/${encodeURIComponent(id)}?refresh=true&retry_on_conflict=3`,
+      { script: { source: REACT_SCRIPT, params: { userId, type } } },
+    );
+    return this.findOne(id);
   }
 
   private async findOwnPost(id: string, userId: number) {
