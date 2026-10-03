@@ -68,6 +68,7 @@ export class UsersController {
   async avatar(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const avatar = await this.usersService.findAvatar(id);
     res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     if (!avatar) {
       res.type('image/svg+xml').send(DEFAULT_AVATAR);
       return;

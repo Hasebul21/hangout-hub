@@ -91,7 +91,14 @@ export class UsersService {
 
   // the browser already resizes the picture, we only check what we get
   private async checkAvatar(image: Express.Multer.File) {
-    if (image.mimetype !== 'image/jpeg') {
+    // don't trust the declared type, every JPEG starts with FF D8 FF
+    const bytes = image.buffer;
+    const isJpeg =
+      bytes.length > 3 &&
+      bytes[0] === 0xff &&
+      bytes[1] === 0xd8 &&
+      bytes[2] === 0xff;
+    if (image.mimetype !== 'image/jpeg' || !isJpeg) {
       throw new BadRequestException('Profile picture must be a JPEG image');
     }
     if (image.size > MAX_AVATAR_SIZE) {
