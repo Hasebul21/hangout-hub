@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service.js';
 import { allowedOrigins } from '../cors.js';
+import { PresenceService } from './presence.service.js';
 
 export function userRoom(userId: number) {
   return `user:${userId}`;
@@ -20,7 +21,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private readonly logger = new Logger(ChatGateway.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly presenceService: PresenceService,
+  ) {}
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token;
@@ -39,13 +43,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     // every tab of the same user joins the same room
     await client.join(userRoom(client.data.userId));
+    await this.presenceService.userConnected(client.data.userId);
+    client.data.counted = true;
     this.logger.log(`User ${client.data.userId} connected (${client.id})`);
+    await this.broadcastPresence();
   }
 
-  handleDisconnect(client: Socket) {
-    if (client.data.userId) {
-      this.logger.log(`User ${client.data.userId} disconnected (${client.id})`);
+  async handleDisconnect(client: Socket) {
+    if (!client.data.counted) {
+      return;
     }
+    await this.presenceService.userDisconnected(client.data.userId);
+    this.logger.log(`User ${client.data.userId} disconnected (${client.id})`);
+    await this.broadcastPresence();
+  }
+
+  private async broadcastPresence() {
+    this.sendToAll('presence', await this.presenceService.getPresence());
   }
 
   sendToUser(userId: number, event: string, data: unknown) {
