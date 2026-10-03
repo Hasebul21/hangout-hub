@@ -3,6 +3,7 @@
   <div class="chatroom-body">
     <div class="user-list">
       <app-user-status [me]="me" [users]="users" [presence]="presence" [selectedUser]="selectedUser"
+        [unreadCounts]="(unread.counts | async) ?? {}"
         (selectUser)="onSelectUser($event)">
       </app-user-status>
     </div>

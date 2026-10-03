@@ -15,4 +15,16 @@ export class ChatService {
   getConversation(userId: number): Observable<Message[]> {
     return this.http.get<Message[]>(`${this.url}/${userId}`);
   }
+
+  getUnreadCounts(): Observable<Record<number, number>> {
+    return this.http.get<Record<number, number>>(`${this.url}/unread`);
+  }
+
+  markAsRead(userId: number): Observable<void> {
+    return this.http.post<void>(`${this.url}/${userId}/read`, {});
+  }
+
+  search(userId: number, text: string): Observable<Message[]> {
+    return this.http.get<Message[]>(`${this.url}/${userId}/search`, { params: { q: text } });
+  }
 }

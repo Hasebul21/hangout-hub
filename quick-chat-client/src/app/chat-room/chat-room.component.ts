@@ -9,6 +9,7 @@ import { User } from '../models/user';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { AuthService } from '../service/auth.service';
 import { SocketService } from '../service/socket.service';
+import { UnreadService } from '../service/unread.service';
 import { UserService } from '../service/user.service';
 import { UserStatusComponent } from '../user-status/user-status.component';
 
@@ -28,6 +29,7 @@ export class ChatRoomComponent implements OnInit, OnDestroy {
   constructor(private auth: AuthService,
     private userService: UserService,
     private socket: SocketService,
+    public unread: UnreadService,
     private route: ActivatedRoute) { }
 
   ngOnInit(): void {
@@ -49,15 +51,18 @@ export class ChatRoomComponent implements OnInit, OnDestroy {
       if (!this.selectedUser) {
         this.selectedUser = this.users.find(user => user.isOwner) ?? this.users[0] ?? null;
       }
+      this.unread.openChat(this.selectedUser?.id ?? null);
     });
   }
 
   ngOnDestroy(): void {
     this.subscription?.unsubscribe();
+    this.unread.openChat(null);
   }
 
   onSelectUser(user: User) {
     this.selectedUser = user;
+    this.unread.openChat(user.id);
   }
 
   isOnline(user: User): boolean {

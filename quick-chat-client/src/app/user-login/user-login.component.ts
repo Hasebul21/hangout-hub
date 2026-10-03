@@ -4,6 +4,7 @@ import { Router, RouterModule } from '@angular/router';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { AuthService } from '../service/auth.service';
 import { SocketService } from '../service/socket.service';
+import { UnreadService } from '../service/unread.service';
 
 @Component({
   selector: 'app-user-login',
@@ -18,6 +19,7 @@ export class UserLoginComponent {
 
   constructor(private auth: AuthService,
     private socket: SocketService,
+    private unread: UnreadService,
     private router: Router,
     private msg: NzMessageService) { }
 
@@ -32,6 +34,7 @@ export class UserLoginComponent {
       next: user => {
         this.loading = false;
         this.socket.connect(this.auth.token!);
+        this.unread.start();
         this.msg.success(`Welcome back, ${user.userName}!`);
         this.router.navigate(['/home']);
       },
