@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterModule } from '@angular/router';
+import { NzAlertModule } from 'ng-zorro-antd/alert';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { User } from '../models/user';
 import { NavbarComponent } from '../navbar/navbar.component';
@@ -17,7 +18,7 @@ const MAX_LENGTH = 500;
 
 @Component({
   selector: 'app-home',
-  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, NavbarComponent, TrendingPostComponent, ProfileSectionComponent],
+  imports: [CommonModule, FormsModule, RouterModule, MatIconModule, NzAlertModule, NavbarComponent, TrendingPostComponent, ProfileSectionComponent],
   templateUrl: './home.component.html',
   styleUrl: './home.component.scss',
 })

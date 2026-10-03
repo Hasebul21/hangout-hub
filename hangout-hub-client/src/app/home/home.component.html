@@ -13,10 +13,12 @@
         <mat-icon>dynamic_feed</mat-icon>
         <span>Browse Feed</span>
       </a>
-      <a routerLink="/profile" class="action-btn profile-btn">
-        <mat-icon>manage_accounts</mat-icon>
-        <span>Edit Profile</span>
-      </a>
+      @if (!loggedInUser?.isGuest) {
+        <a routerLink="/profile" class="action-btn profile-btn">
+          <mat-icon>manage_accounts</mat-icon>
+          <span>Edit Profile</span>
+        </a>
+      }
     </div>
     <div class="suggested-users">
       <h3 class="section-title">People You May Know</h3>
@@ -37,24 +39,36 @@
     </div>
   </aside>
   <main class="main-feed">
-    <div class="composer-card">
-      <div class="composer-top">
-        <img
-          [src]="avatarUrl(loggedInUser?.id, loggedInUser?.updatedAt)" (error)="useDefaultAvatar($event)"
-          class="composer-avatar" alt="You" />
-        <textarea class="composer-textarea"
-          [placeholder]="'What\'s on your mind, ' + (loggedInUser?.userName || '') + '?'" [(ngModel)]="newPostContent"
-          rows="3" [maxlength]="maxLength" [class.has-content]="newPostContent.length > 0"></textarea>
+    @if (loggedInUser?.isGuest) {
+      <nz-alert class="guest-alert" nzType="info" nzShowIcon
+        nzMessage="You're browsing as a guest"
+        [nzDescription]="guestNote">
+      </nz-alert>
+      <ng-template #guestNote>
+        You can read posts and comments. To post, comment, like or chat,
+        <a routerLink="/register">create an account</a>, it only takes a minute.
+      </ng-template>
+    } @else {
+      <div class="composer-card">
+        <div class="composer-top">
+          <img
+            [src]="avatarUrl(loggedInUser?.id, loggedInUser?.updatedAt)" (error)="useDefaultAvatar($event)"
+            class="composer-avatar" alt="You" />
+          <textarea class="composer-textarea"
+            [placeholder]="'What\'s on your mind, ' + (loggedInUser?.userName || '') + '?'" [(ngModel)]="newPostContent"
+            rows="3" [maxlength]="maxLength" [class.has-content]="newPostContent.length > 0"></textarea>
+        </div>
+        <div class="composer-footer">
+          <span class="char-counter" [class.near-limit]="newPostContent.length > maxLength - 30">
+            {{ newPostContent.length }} / {{ maxLength }}
+          </span>
+          <button class="post-btn" [disabled]="!newPostContent.trim() || posting" (click)="postPublicly()">
+            <mat-icon>send</mat-icon> Post
+          </button>
+        </div>
       </div>
-      <div class="composer-footer">
-        <span class="char-counter" [class.near-limit]="newPostContent.length > maxLength - 30">
-          {{ newPostContent.length }} / {{ maxLength }}
-        </span>
-        <button class="post-btn" [disabled]="!newPostContent.trim() || posting" (click)="postPublicly()">
-          <mat-icon>send</mat-icon> Post
-        </button>
-      </div>
-    </div>
+    }
+
     <div class="feed-section-header">
       <mat-icon class="fire-icon">local_fire_department</mat-icon>
       <span>Trending Posts</span>

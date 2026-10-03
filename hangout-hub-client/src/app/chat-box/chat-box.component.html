@@ -10,10 +10,12 @@
       }
     </span>
   </div>
-  <button nz-button nzType="text" nzShape="circle" class="search-toggle" title="Search messages"
-    (click)="toggleSearch()">
-    <span nz-icon [nzType]="searchOpen ? 'close' : 'search'"></span>
-  </button>
+  @if (!isGuest) {
+    <button nz-button nzType="text" nzShape="circle" class="search-toggle" title="Search messages"
+      (click)="toggleSearch()">
+      <span nz-icon [nzType]="searchOpen ? 'close' : 'search'"></span>
+    </button>
+  }
 </div>
 
 @if (searchOpen) {
@@ -60,16 +62,22 @@
   } @empty {
     <div class="empty-chat">
       <span nz-icon nzType="smile" class="empty-icon"></span>
-      <p>Say hello to {{ selectedUser.userName }}!</p>
+      <p>{{ isGuest ? 'Messages are private to members' : 'Say hello to ' + selectedUser.userName + '!' }}</p>
     </div>
   }
 </div>
 
-<div class="chat-input-bar">
-  <input class="chat-input" placeholder="Type a message..." maxlength="1000" [(ngModel)]="content"
-    (ngModelChange)="onInput()"
-    (keydown.enter)="send()" />
-  <button class="send-btn" (click)="send()" [disabled]="!content.trim() || sending">
-    <span nz-icon nzType="send"></span>
-  </button>
-</div>
+@if (isGuest) {
+  <div class="guest-bar">
+    Guests can't send messages. <a routerLink="/register">Create an account</a> to chat with {{ selectedUser.userName }}.
+  </div>
+} @else {
+  <div class="chat-input-bar">
+    <input class="chat-input" placeholder="Type a message..." maxlength="1000" [(ngModel)]="content"
+      (ngModelChange)="onInput()"
+      (keydown.enter)="send()" />
+    <button class="send-btn" (click)="send()" [disabled]="!content.trim() || sending">
+      <span nz-icon nzType="send"></span>
+    </button>
+  </div>
+}
