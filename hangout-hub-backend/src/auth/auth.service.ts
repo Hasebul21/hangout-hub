@@ -1,27 +1,32 @@
-import {
-  HttpException,
-  HttpStatus,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service.js';
 
-const GUESTS_PER_IP_PER_HOUR = 5;
-const GUESTS_PER_HOUR = 100;
-const HOUR = 60 * 60 * 1000;
-
 export interface JwtPayload {
   sub: number;
   email: string;
+  guest?: boolean;
 }
+
+export const GUEST_USER = {
+  id: 0,
+  userName: 'Guest',
+  email: '',
+  professionalTitle: null,
+  location: null,
+  bio: null,
+  portfolio: null,
+  skills: null,
+  hobbies: null,
+  instagram: null,
+  isOwner: false,
+  isDemo: false,
+  isGuest: true,
+};
 
 @Injectable()
 export class AuthService {
-  private guestLogins = new Map<string, number[]>();
-  private allGuestLogins: number[] = [];
-
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -40,46 +45,15 @@ export class AuthService {
     };
   }
 
-  async loginAsGuest(ip: string) {
-    const now = Date.now();
-    this.forgetOldGuestLogins(now);
-
-    const fromThisIp = this.guestLogins.get(ip) ?? [];
-    if (
-      fromThisIp.length >= GUESTS_PER_IP_PER_HOUR ||
-      this.allGuestLogins.length >= GUESTS_PER_HOUR
-    ) {
-      throw new HttpException(
-        'Too many guest accounts, please try again later',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
-    fromThisIp.push(now);
-    this.guestLogins.set(ip, fromThisIp);
-    this.allGuestLogins.push(now);
-
-    const user = await this.usersService.createGuest();
-    const payload: JwtPayload = { sub: user.id, email: user.email };
+  async loginAsGuest() {
+    const payload: JwtPayload = { sub: GUEST_USER.id, email: '', guest: true };
+    const now = new Date().toISOString();
     return {
       accessToken: await this.jwtService.signAsync(payload, {
         expiresIn: '1d',
       }),
-      user,
+      user: { ...GUEST_USER, createdAt: now, updatedAt: now },
     };
-  }
-
-  private forgetOldGuestLogins(now: number) {
-    this.allGuestLogins = this.allGuestLogins.filter(
-      (time) => now - time < HOUR,
-    );
-    for (const [ip, times] of this.guestLogins) {
-      const recent = times.filter((time) => now - time < HOUR);
-      if (recent.length) {
-        this.guestLogins.set(ip, recent);
-      } else {
-        this.guestLogins.delete(ip);
-      }
-    }
   }
 
   async verifyToken(token: string): Promise<JwtPayload> {

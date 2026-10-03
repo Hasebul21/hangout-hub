@@ -10,10 +10,11 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { MembersOnlyGuard } from '../auth/members-only.guard.js';
 import { MessagesService } from './messages.service.js';
 
 @Controller('messages')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, MembersOnlyGuard)
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 

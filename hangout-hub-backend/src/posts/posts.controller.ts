@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { MembersOnlyGuard } from '../auth/members-only.guard.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
 import { PostContentDto } from './dto/post-content.dto.js';
 import { ReactionDto } from './dto/reaction.dto.js';
@@ -48,11 +49,13 @@ export class PostsController {
   }
 
   @Post()
+  @UseGuards(MembersOnlyGuard)
   create(@CurrentUserId() userId: number, @Body() body: PostContentDto) {
     return this.postsService.create(userId, body.content);
   }
 
   @Patch(':id')
+  @UseGuards(MembersOnlyGuard)
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() userId: number,
@@ -62,6 +65,7 @@ export class PostsController {
   }
 
   @Post(':id/reaction')
+  @UseGuards(MembersOnlyGuard)
   @HttpCode(200)
   react(
     @Param('id', ParseUUIDPipe) id: string,
@@ -72,6 +76,7 @@ export class PostsController {
   }
 
   @Delete(':id')
+  @UseGuards(MembersOnlyGuard)
   @HttpCode(204)
   remove(
     @Param('id', ParseUUIDPipe) id: string,

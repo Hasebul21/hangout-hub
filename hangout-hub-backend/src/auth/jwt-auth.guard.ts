@@ -14,7 +14,7 @@ export class JwtAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext) {
     const request = context
       .switchToHttp()
-      .getRequest<Request & { userId?: number }>();
+      .getRequest<Request & { userId?: number; isGuest?: boolean }>();
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     if (type !== 'Bearer' || !token) {
       throw new UnauthorizedException();
@@ -23,6 +23,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       const payload = await this.authService.verifyToken(token);
       request.userId = payload.sub;
+      request.isGuest = payload.guest === true;
     } catch {
       throw new UnauthorizedException();
     }

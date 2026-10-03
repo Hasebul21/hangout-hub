@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
-import { randomBytes, randomInt, randomUUID } from 'crypto';
 import { Repository } from 'typeorm';
 import { OWNER } from '../seed/seed-data.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -34,18 +33,6 @@ export class UsersService {
     });
     const saved = await this.users.save(user);
     return this.findById(saved.id);
-  }
-
-  async createGuest() {
-    const guest = await this.users.save(
-      this.users.create({
-        userName: `Guest ${randomInt(1000, 10000)}`,
-        email: `guest-${randomUUID()}@guest.hangouthub.app`,
-        password: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
-        isGuest: true,
-      }),
-    );
-    return this.findById(guest.id);
   }
 
   async findById(id: number) {
