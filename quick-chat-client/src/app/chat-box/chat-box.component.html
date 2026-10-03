@@ -10,9 +10,41 @@
       }
     </span>
   </div>
+  <button nz-button nzType="text" nzShape="circle" class="search-toggle" title="Search messages"
+    (click)="toggleSearch()">
+    <span nz-icon [nzType]="searchOpen ? 'close' : 'search'"></span>
+  </button>
 </div>
 
-<div class="chat-messages" #messageList>
+@if (searchOpen) {
+  <div class="search-bar">
+    <nz-input-group nzSearch [nzAddOnAfter]="searchButton">
+      <input nz-input placeholder="Search this conversation" [(ngModel)]="searchText" (keydown.enter)="search()" />
+    </nz-input-group>
+    <ng-template #searchButton>
+      <button nz-button nzType="primary" nzSearch (click)="search()"><span nz-icon nzType="search"></span></button>
+    </ng-template>
+  </div>
+}
+
+@if (searchResults) {
+  <div class="search-results">
+    <div class="search-summary">
+      {{ searchResults.length }} {{ searchResults.length === 1 ? 'message' : 'messages' }} found
+    </div>
+    @for (message of searchResults; track message.id) {
+      <div class="search-item">
+        <div class="search-meta">
+          <strong>{{ isMine(message) ? 'You' : selectedUser.userName }}</strong>
+          <span>{{ message.createdAt | date: 'MMM d, y, h:mm a' }}</span>
+        </div>
+        <div>{{ message.content }}</div>
+      </div>
+    }
+  </div>
+}
+
+<div class="chat-messages" #messageList [hidden]="searchResults">
   @for (message of messages; track message.id) {
     <div class="msg-row" [class.msg-right]="isMine(message)" [class.msg-left]="!isMine(message)">
       <img class="msg-avatar" [src]="avatarUrl(message.senderId)" (error)="useDefaultAvatar($event)" alt="avatar" />
