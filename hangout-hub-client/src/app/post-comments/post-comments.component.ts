@@ -6,6 +6,7 @@ import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { RouterModule } from '@angular/router';
 import { Comment, Post } from '../models/post';
 import { AuthService } from '../service/auth.service';
 import { PostService } from '../service/post.service';
@@ -14,7 +15,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-post-comments',
-  imports: [CommonModule, FormsModule, NzInputModule, NzButtonModule, NzIconModule, NzPopconfirmModule],
+  imports: [CommonModule, FormsModule, RouterModule, NzInputModule, NzButtonModule, NzIconModule, NzPopconfirmModule],
   templateUrl: './post-comments.component.html',
   styleUrl: './post-comments.component.scss'
 })
@@ -27,6 +28,7 @@ export class PostCommentsComponent implements OnInit {
   loading = true;
   sending = false;
   myId: number | undefined;
+  isGuest = false;
   avatarUrl = avatarUrl;
   useDefaultAvatar = useDefaultAvatar;
   timeAgo = timeAgo;
@@ -37,6 +39,7 @@ export class PostCommentsComponent implements OnInit {
 
   ngOnInit(): void {
     this.myId = this.auth.currentUser?.id;
+    this.isGuest = this.auth.isGuest();
     this.postService.getComments(this.post.id).subscribe({
       next: comments => {
         this.comments = comments;

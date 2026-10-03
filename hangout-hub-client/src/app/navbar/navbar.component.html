@@ -11,9 +11,11 @@
       <mat-icon>chat_bubble</mat-icon><span>Chats</span>
       <nz-badge [nzCount]="(unread.total | async) ?? 0" nzSize="small" class="nav-badge"></nz-badge>
     </a>
-    <a routerLink="/profile" routerLinkActive="active" class="nav-link" (click)="mobileMenuOpen = false">
-      <mat-icon>person</mat-icon><span>Profile</span>
-    </a>
+    @if (!loggedInUser?.isGuest) {
+      <a routerLink="/profile" routerLinkActive="active" class="nav-link" (click)="mobileMenuOpen = false">
+        <mat-icon>person</mat-icon><span>Profile</span>
+      </a>
+    }
     <a routerLink="/posts" routerLinkActive="active" class="nav-link" (click)="mobileMenuOpen = false">
       <mat-icon>dynamic_feed</mat-icon><span>Feed</span>
     </a>
@@ -37,9 +39,11 @@
           </div>
         </div>
         <mat-divider></mat-divider>
-        <button mat-menu-item routerLink="/profile">
-          <mat-icon>manage_accounts</mat-icon> My Profile
-        </button>
+        @if (!loggedInUser?.isGuest) {
+          <button mat-menu-item routerLink="/profile">
+            <mat-icon>manage_accounts</mat-icon> My Profile
+          </button>
+        }
         <button mat-menu-item routerLink="/posts">
           <mat-icon>dynamic_feed</mat-icon> My Feed
         </button>

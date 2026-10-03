@@ -110,7 +110,8 @@
   }
 }
 
-button[type="submit"] {
+button[type="submit"],
+.guest-btn {
   width: 100%;
   padding: 13px;
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -148,5 +149,18 @@ button[type="submit"] {
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+.login-form .guest-btn {
+  margin-top: 10px;
+  padding: 11px;
+  background: #fff;
+  color: #6c63ff;
+  border: 1.5px solid #6c63ff;
+  box-shadow: none;
+
+  &:hover:not(:disabled) {
+    background: #f0efff;
   }
 }

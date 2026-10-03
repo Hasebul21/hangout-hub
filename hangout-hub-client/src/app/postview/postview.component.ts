@@ -44,6 +44,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
   dateRange: Date[] = [];
 
   demoUserIds = new Set<number>();
+  isGuest = false;
   openComments = new Set<string>();
 
   editingPost: Post | null = null;
@@ -63,6 +64,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loggedInUser = this.authService.currentUser;
+    this.isGuest = this.authService.isGuest();
 
     this.subscription = this.authorChanges.pipe(debounceTime(300)).subscribe(() => this.search());
     this.loadPosts();
@@ -114,6 +116,10 @@ export class PostviewComponent implements OnInit, OnDestroy {
   }
 
   react(post: Post, type: Reaction): void {
+    if (this.isGuest) {
+      this.msg.info('Create an account to like or dislike posts');
+      return;
+    }
     this.postService.react(post.id, type).subscribe({
       next: updated => this.replacePost(updated),
       error: () => this.msg.error('Could not save your reaction')

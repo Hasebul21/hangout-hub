@@ -6,24 +6,28 @@
 
   <div class="sidebar-identity">
     <h3 class="sidebar-name">{{ loggedInUser?.userName }}</h3>
-    <p class="sidebar-title">{{ loggedInUser?.professionalTitle || 'Hangout Hub member' }}</p>
+    <p class="sidebar-title">
+      {{ loggedInUser?.isGuest ? 'Browsing as a guest' : (loggedInUser?.professionalTitle || 'Hangout Hub member') }}
+    </p>
   </div>
 
-  <mat-divider></mat-divider>
+  @if (!loggedInUser?.isGuest) {
+    <mat-divider></mat-divider>
 
-  <div class="stats-row">
-    <div class="stat">
-      <span class="stat-value">{{ postCount }}</span>
-      <span class="stat-label">Posts</span>
+    <div class="stats-row">
+      <div class="stat">
+        <span class="stat-value">{{ postCount }}</span>
+        <span class="stat-label">Posts</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <span class="stat-value">{{ loggedInUser?.createdAt | date: 'MMM y' }}</span>
+        <span class="stat-label">Joined</span>
+      </div>
     </div>
-    <div class="stat-divider"></div>
-    <div class="stat">
-      <span class="stat-value">{{ loggedInUser?.createdAt | date: 'MMM y' }}</span>
-      <span class="stat-label">Joined</span>
-    </div>
-  </div>
 
-  <mat-divider></mat-divider>
+    <mat-divider></mat-divider>
+  }
 
   <div class="sidebar-details">
     @if (loggedInUser?.location) {

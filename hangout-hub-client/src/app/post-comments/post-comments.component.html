@@ -26,11 +26,15 @@
     }
   }
 
-  <div class="comment-form">
-    <input nz-input placeholder="Write a comment..." maxlength="500" [(ngModel)]="newComment"
-      (keydown.enter)="addComment()" />
-    <button nz-button nzType="primary" [disabled]="!newComment.trim() || sending" (click)="addComment()">
-      <span nz-icon nzType="send"></span>
-    </button>
-  </div>
+  @if (isGuest) {
+    <p class="muted"><a routerLink="/register">Create an account</a> to join the conversation.</p>
+  } @else {
+    <div class="comment-form">
+      <input nz-input placeholder="Write a comment..." maxlength="500" [(ngModel)]="newComment"
+        (keydown.enter)="addComment()" />
+      <button nz-button nzType="primary" [disabled]="!newComment.trim() || sending" (click)="addComment()">
+        <span nz-icon nzType="send"></span>
+      </button>
+    </div>
+  }
 </div>

@@ -6,10 +6,12 @@ import { FormsModule } from '@angular/forms';
 import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzInputModule } from 'ng-zorro-antd/input';
+import { RouterModule } from '@angular/router';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { Subscription } from 'rxjs';
 import { Message } from '../models/message';
 import { User } from '../models/user';
+import { AuthService } from '../service/auth.service';
 import { ChatService } from '../service/chat.service';
 import { SocketService } from '../service/socket.service';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
@@ -17,7 +19,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, FormsModule, NzIconModule, NzInputModule, NzButtonModule],
+  imports: [CommonModule, FormsModule, RouterModule, NzIconModule, NzInputModule, NzButtonModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
@@ -33,6 +35,7 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   content = '';
   sending = false;
   otherTyping = false;
+  isGuest = false;
   searchOpen = false;
   searchText = '';
   searchResults: Message[] | null = null;
@@ -46,10 +49,12 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   private isTyping = false;
 
   constructor(private chatService: ChatService,
+    private auth: AuthService,
     private socket: SocketService,
     private msg: NzMessageService) { }
 
   ngOnInit(): void {
+    this.isGuest = this.auth.isGuest();
     this.subscription.add(this.socket.on<Message>('message').subscribe(message => {
       if (this.belongsToThisChat(message)) {
         this.messages.push(message);
@@ -101,6 +106,9 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   }
 
   onInput() {
+    if (this.isGuest) {
+      return;
+    }
     if (!this.isTyping) {
       this.isTyping = true;
       this.socket.emit('typing', { receiverId: this.selectedUser.id, typing: true });
@@ -118,6 +126,9 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
 
   loadMessages() {
     this.messages = [];
+    if (this.auth.isGuest()) {
+      return;
+    }
     this.chatService.getConversation(this.selectedUser.id).subscribe(messages => {
       this.messages = messages;
       this.scrollToBottom = true;
@@ -153,6 +164,9 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   }
 
   toggleSearch() {
+    if (this.isGuest) {
+      return;
+    }
     if (this.searchOpen) {
       this.closeSearch();
     } else {

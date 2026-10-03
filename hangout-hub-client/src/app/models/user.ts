@@ -11,6 +11,7 @@ export interface User {
   instagram: string | null;
   isOwner: boolean;
   isDemo: boolean;
+  isGuest: boolean;
   createdAt: string;
   updatedAt: string;
 }

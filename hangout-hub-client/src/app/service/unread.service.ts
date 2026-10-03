@@ -26,7 +26,7 @@ export class UnreadService {
     private notification: NzNotificationService) { }
 
   start() {
-    if (this.started) {
+    if (this.started || this.auth.isGuest()) {
       return;
     }
     this.started = true;

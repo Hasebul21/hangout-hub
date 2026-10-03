@@ -30,7 +30,7 @@ export class ProfileSectionComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(): void {
-    if (this.loggedInUser) {
+    if (this.loggedInUser && !this.loggedInUser.isGuest) {
       this.postService.getPostCount(this.loggedInUser.id).subscribe(data => this.postCount = data.count);
     }
   }
