@@ -88,6 +88,26 @@ export class MessagesService implements OnModuleInit {
     return items.reverse();
   }
 
+  async search(userId: number, otherUserId: number, text: string) {
+    text = (text ?? '').trim();
+    if (!text) {
+      return [];
+    }
+    const { items } = await this.elastic.search<Message>(INDEX, {
+      query: {
+        bool: {
+          filter: [
+            { term: { conversationId: conversationId(userId, otherUserId) } },
+          ],
+          must: [{ match: { content: { query: text, fuzziness: 'AUTO' } } }],
+        },
+      },
+      sort: [{ createdAt: 'desc' }],
+      size: 50,
+    });
+    return items;
+  }
+
   // number of unread messages per sender, for the current user
   async unreadCounts(userId: number) {
     const data = await this.elastic.request('POST', `/${INDEX}/_search`, {
