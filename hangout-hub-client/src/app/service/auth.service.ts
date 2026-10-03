@@ -34,6 +34,16 @@ export class AuthService {
     );
   }
 
+  loginAsGuest(): Observable<User> {
+    return this.http.post<LoginResponse>(`${this.url}/guest`, {}).pipe(
+      tap(res => {
+        sessionStorage.setItem(TOKEN_KEY, res.accessToken);
+        this.setCurrentUser(res.user);
+      }),
+      map(res => res.user)
+    );
+  }
+
   logout(): void {
     sessionStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_KEY);
@@ -50,6 +60,10 @@ export class AuthService {
 
   setCurrentUser(user: User): void {
     sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+  }
+
+  isGuest(): boolean {
+    return this.currentUser?.isGuest === true;
   }
 
   isLoggedIn(): boolean {

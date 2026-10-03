@@ -20,6 +20,7 @@
       </div>
 
       <button type="submit" [disabled]="loading">{{ loading ? 'Logging in...' : 'Log In' }}</button>
+      <button type="button" class="guest-btn" [disabled]="loading" (click)="loginAsGuest()">Continue as guest</button>
       <p class="register-link">New to Hangout Hub? <a routerLink="/register">Create an account</a></p>
     </form>
   </div>

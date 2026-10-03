@@ -9,3 +9,11 @@ export const authGuard: CanActivateFn = () => {
   }
   return inject(Router).createUrlTree(['/login']);
 };
+
+export const memberGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  if (auth.isLoggedIn() && !auth.isGuest()) {
+    return true;
+  }
+  return inject(Router).createUrlTree([auth.isLoggedIn() ? '/home' : '/login']);
+};
