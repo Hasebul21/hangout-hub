@@ -45,6 +45,10 @@ export class ChatRoomComponent implements OnInit, OnDestroy {
       if (userId) {
         this.selectedUser = this.users.find(user => user.id === userId) ?? null;
       }
+      // otherwise start with the owner, so there is always someone to talk to
+      if (!this.selectedUser) {
+        this.selectedUser = this.users.find(user => user.isOwner) ?? this.users[0] ?? null;
+      }
     });
   }
 

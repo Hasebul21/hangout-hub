@@ -9,6 +9,7 @@ export interface User {
   skills: string | null;
   hobbies: string | null;
   instagram: string | null;
+  isOwner: boolean;
   createdAt: string;
   updatedAt: string;
 }
