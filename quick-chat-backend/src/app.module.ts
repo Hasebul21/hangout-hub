@@ -5,6 +5,7 @@ import { AppController } from './app.controller.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ChatModule } from './chat/chat.module.js';
 import { ElasticModule } from './elastic/elastic.module.js';
+import { PostsModule } from './posts/posts.module.js';
 import { RedisModule } from './redis/redis.module.js';
 
 @Module({
@@ -24,6 +25,7 @@ import { RedisModule } from './redis/redis.module.js';
     ElasticModule,
     AuthModule,
     ChatModule,
+    PostsModule,
   ],
   controllers: [AppController],
 })
