@@ -1,122 +1,95 @@
-# QuickChat
+# Hangout Hub
 
-A production-quality real-time chat and social platform built with Spring Boot, Angular, PostgreSQL, Redis, and Elasticsearch. Features WebSocket-based messaging, user authentication, post feed with search, and full cloud deployment on Railway + Vercel.
+A small social app: chat one to one in real time, share posts, like and comment, and see who is online.
+
+Built with NestJS and Angular, using PostgreSQL, Redis and Elasticsearch.
 
 ## Features
 
-- **Real-time Chat**: Bidirectional communication using WebSockets for instant messaging.
-- **User Authentication**: Login and registration features for user management.
-- **Message Search**: Powered by Elasticsearch for quick and efficient message retrieval.
-- **Performance Optimization**: In-memory caching with Redis to improve application speed.
-- **Responsive Design**: Built with Angular for a responsive user interface.
-- **Dockerized Deployment**: Easily deployable using Docker for consistency across environments.
+- Sign up and log in (passwords hashed with bcrypt, JWT for the API and the socket)
+- Private chat over Socket.IO with message history
+- Online status and "last seen", typing indicator, unread badges and notifications
+- Search inside a conversation
+- Posts with likes and dislikes (one vote per person), comments, edit and delete
+- Trending posts that update live
+- Feed search by author, keyword and date range
+- Profile page with a picture upload (resized on the server)
 
-## Tech Stack
+## Project layout
 
-- **Backend**: Spring Boot
-- **Frontend**: Angular, TypeScript
-- **Database**: PostgreSQL
-- **Search Engine**: Elasticsearch
-- **Caching**: Redis
-- **Deployment**: Docker
+```
+hangout-hub-backend/   NestJS API and Socket.IO gateway
+hangout-hub-client/    Angular app (ng-zorro-antd + Angular Material icons)
+docker-compose.yml     Postgres, Redis, Elasticsearch, and both apps
+```
 
-## 🛠 Tech Stack Overview
+Where things are stored:
 
-- **Elasticsearch** – Enables full-text search functionality for chat messages.  
-- **WebSocket** – Powers real-time, bidirectional communication for instant messaging.  
-- **Redis** – Used for caching active users and temporarily storing messages. A scheduled cron job persists these messages to the database.  
-- **Spring Boot & Angular** – Backend and frontend frameworks for developing the application’s server-side logic and user interface.  
-- **PostgreSQL** – Serves as the primary relational database for storing user data and chat history.
+| Store         | What                                              |
+| ------------- | ------------------------------------------------- |
+| PostgreSQL    | user accounts and profile pictures                |
+| Elasticsearch | posts, comments and chat messages (search)        |
+| Redis         | who is online and when people were last seen      |
 
+## Running locally
 
-## Requirements
+You need Node 22+ and Docker.
 
-Before you start, ensure you have the following installed on your machine:
+Start the databases:
 
-- Java 17 or higher
-- Node.js and npm
-- Docker
-- PostgreSQL
-- Elasticsearch
-- Redis
+```bash
+npm run services
+```
 
-## Setup Instructions
+Backend (http://localhost:8080):
 
-### Backend Setup (Spring Boot)
+```bash
+cd hangout-hub-backend
+cp .env.example .env
+npm install
+npm run start:dev
+```
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/Hasebul21/quick-chat.git
-    cd quick-chat
-    ```
+Client (http://localhost:4200):
 
-2. Navigate to the `backend` directory:
-    ```bash
-    cd backend
-    ```
+```bash
+cd hangout-hub-client
+npm install
+npm start
+```
 
-3. Configure application properties (e.g., database connection, Elasticsearch):
-    - Open `src/main/resources/application.properties` and update the settings as needed.
+Or run everything in Docker with `npm start` from the root.
 
-4. Run the Spring Boot application:
-    ```bash
-    ./mvnw spring-boot:run
-    ```
+On the first start the backend creates the owner account and a few demo accounts with some posts, comments and chats so the app isn't empty. Demo accounts can't be logged into.
 
-5. Your Spring Boot server will start, typically on port `8080`.
+## Tests
 
-### Frontend Setup (Angular)
+The end to end tests boot the whole API against the local services:
 
-1. Navigate to the `frontend` directory:
-    ```bash
-    cd ../frontend
-    ```
+```bash
+cd hangout-hub-backend
+npm run test:e2e
+```
 
-2. Install dependencies:
-    ```bash
-    npm install
-    ```
+## Configuration
 
-3. Start the Angular development server:
-    ```bash
-    ng serve
-    ```
+Backend environment variables (see `hangout-hub-backend/.env.example`):
 
-4. Your Angular app will be available at `http://localhost:4200`.
+| Variable                 | Notes                                          |
+| ------------------------ | ---------------------------------------------- |
+| `PORT`                   | defaults to 8080                               |
+| `ALLOWED_ORIGINS`        | comma separated list of client urls            |
+| `DATABASE_URL`           | Postgres connection string                     |
+| `DATABASE_SSL`           | `true` for hosted Postgres                     |
+| `DB_SYNCHRONIZE`         | create/update tables on start, default `true`  |
+| `REDIS_URL`              | use `rediss://` for TLS                        |
+| `ELASTICSEARCH_URL`      | credentials can be part of the url             |
+| `JWT_SECRET`             | required                                       |
+| `OWNER_PASSWORD`         | password for the owner account                 |
 
-### Docker Setup
+The client reads the API url from `src/environments/environment.ts` (and `environment.prod.ts` for production builds).
 
-To run the entire application using Docker, follow these steps:
+## Deployment
 
-1. Ensure Docker is running.
-
-2. Build the Docker images:
-    ```bash
-    docker-compose build
-    ```
-
-3. Start the application containers:
-    ```bash
-    docker-compose up
-    ```
-
-This will spin up the necessary containers for Spring Boot, PostgreSQL, Redis, and Elasticsearch.
-
-## Usage
-
-- **Login/Registration**: Users can sign up and log in using their email and password.
-- **Messaging**: Once logged in, users can send and receive real-time messages in the chat interface.
-- **Search**: Elasticsearch allows fast searching through messages.
-- **Performance**: Redis is used for caching messages and improving response time.
-
-## API Endpoints
-
-### Authentication
-
-- **POST /api/auth/register**: Register a new user
-- **POST /api/auth/login**: Log in with user credentials
-
-### Chat
-
-- **GET /api/chats/{userId}/{receiverId}**: Get chat history between two users.
-- **POST /api/chats/send**: Send a message to a user.
+- Backend: Railway, built from `hangout-hub-backend/Dockerfile`.
+- Client: Vercel, using the root `vercel.json`.
