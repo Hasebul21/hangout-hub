@@ -65,8 +65,25 @@ export class PostsService implements OnModuleInit {
   }
 
   async list(query: ListPostsDto) {
+    const filters: object[] = [];
+    if (query.author?.trim()) {
+      filters.push({
+        match_phrase_prefix: { authorName: query.author.trim() },
+      });
+    }
+    if (query.q?.trim()) {
+      filters.push({
+        match: { content: { query: query.q.trim(), operator: 'and' } },
+      });
+    }
+    if (query.from || query.to) {
+      filters.push({
+        range: { createdAt: { gte: query.from, lte: query.to } },
+      });
+    }
+
     const { items, total } = await this.elastic.search<Post>(POSTS_INDEX, {
-      query: { match_all: {} },
+      query: filters.length ? { bool: { must: filters } } : { match_all: {} },
       sort: [{ createdAt: 'desc' }],
       from: (query.page - 1) * query.size,
       size: query.size,
