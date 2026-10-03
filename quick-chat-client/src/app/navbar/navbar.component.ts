@@ -4,16 +4,18 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { Router, RouterModule } from '@angular/router';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { User } from '../models/user';
 import { AuthService } from '../service/auth.service';
 import { SocketService } from '../service/socket.service';
+import { UnreadService } from '../service/unread.service';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
 
 @Component({
   selector: 'app-navbar',
-  imports: [CommonModule, RouterModule, MatIconModule, MatMenuModule, MatButtonModule, MatDividerModule],
+  imports: [CommonModule, RouterModule, NzBadgeModule, MatIconModule, MatMenuModule, MatButtonModule, MatDividerModule],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.scss'
 })
@@ -25,6 +27,7 @@ export class NavbarComponent implements OnInit {
 
   constructor(private auth: AuthService,
     private socket: SocketService,
+    public unread: UnreadService,
     private msg: NzMessageService,
     private router: Router) { }
 
@@ -35,6 +38,7 @@ export class NavbarComponent implements OnInit {
 
   logout() {
     this.socket.disconnect();
+    this.unread.stop();
     this.auth.logout();
     this.loggedInUser = null;
     this.msg.success('You have been logged out');

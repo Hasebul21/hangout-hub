@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NzBadgeModule } from 'ng-zorro-antd/badge';
 import { NzTagModule } from 'ng-zorro-antd/tag';
 import { Presence } from '../models/message';
 import { User } from '../models/user';
@@ -9,7 +10,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-user-status',
-  imports: [CommonModule, FormsModule, NzTagModule],
+  imports: [CommonModule, FormsModule, NzTagModule, NzBadgeModule],
   templateUrl: './user-status.component.html',
   styleUrl: './user-status.component.scss',
 })
@@ -18,6 +19,7 @@ export class UserStatusComponent {
   @Input() users: User[] = [];
   @Input() presence: Presence = { onlineUserIds: [], lastSeen: {} };
   @Input() selectedUser: User | null = null;
+  @Input() unreadCounts: Record<number, number> = {};
   @Output() selectUser = new EventEmitter<User>();
 
   searchTerm = '';

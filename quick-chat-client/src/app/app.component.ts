@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthService } from './service/auth.service';
 import { SocketService } from './service/socket.service';
+import { UnreadService } from './service/unread.service';
 
 @Component({
   selector: 'app-root',
@@ -11,12 +12,15 @@ import { SocketService } from './service/socket.service';
 })
 export class AppComponent implements OnInit {
 
-  constructor(private auth: AuthService, private socket: SocketService) { }
+  constructor(private auth: AuthService,
+    private socket: SocketService,
+    private unread: UnreadService) { }
 
   ngOnInit() {
     // reconnect after a page refresh
     if (this.auth.isLoggedIn()) {
       this.socket.connect(this.auth.token!);
+      this.unread.start();
     }
   }
 }

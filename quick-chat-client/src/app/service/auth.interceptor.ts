@@ -5,11 +5,13 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { SocketService } from './socket.service';
+import { UnreadService } from './unread.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const socket = inject(SocketService);
+  const unread = inject(UnreadService);
 
   if (auth.token && req.url.startsWith(environment.apiBaseUrl)) {
     req = req.clone({ setHeaders: { Authorization: `Bearer ${auth.token}` } });
@@ -20,6 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       // token expired or invalid, send the user back to login
       if (error.status === 401 && auth.token) {
         socket.disconnect();
+        unread.stop();
         auth.logout();
         router.navigate(['/login']);
       }

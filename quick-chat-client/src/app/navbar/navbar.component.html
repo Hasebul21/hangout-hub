@@ -9,6 +9,7 @@
     </a>
     <a routerLink="/chatroom" routerLinkActive="active" class="nav-link" (click)="mobileMenuOpen = false">
       <mat-icon>chat_bubble</mat-icon><span>Chats</span>
+      <nz-badge [nzCount]="(unread.total | async) ?? 0" nzSize="small" class="nav-badge"></nz-badge>
     </a>
     <a routerLink="/profile" routerLinkActive="active" class="nav-link" (click)="mobileMenuOpen = false">
       <mat-icon>person</mat-icon><span>Profile</span>

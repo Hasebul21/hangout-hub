@@ -29,6 +29,7 @@
           </span>
           <span class="contact-sub">{{ statusText(user) }}</span>
         </div>
+        <nz-badge [nzCount]="unreadCounts[user.id] || 0" class="unread-badge"></nz-badge>
       </div>
     } @empty {
       <div class="no-contacts">No contacts found</div>
