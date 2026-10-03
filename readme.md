@@ -2,7 +2,7 @@
 
 A small social app: chat one to one in real time, share posts, like and comment, and see who is online.
 
-Built with NestJS and Angular, using PostgreSQL, Redis and Elasticsearch.
+Built with NestJS, Angular and PostgreSQL.
 
 ## Features
 
@@ -20,22 +20,16 @@ Built with NestJS and Angular, using PostgreSQL, Redis and Elasticsearch.
 ```
 hangout-hub-backend/   NestJS API and Socket.IO gateway
 hangout-hub-client/    Angular app (ng-zorro-antd + Angular Material icons)
-docker-compose.yml     Postgres, Redis, Elasticsearch, and both apps
+docker-compose.yml     Postgres and both apps
 ```
 
-Where things are stored:
-
-| Store         | What                                              |
-| ------------- | ------------------------------------------------- |
-| PostgreSQL    | user accounts and profile pictures                |
-| Elasticsearch | posts, comments and chat messages (search)        |
-| Redis         | who is online and when people were last seen      |
+Everything (accounts, pictures, posts, comments, reactions and messages) is stored in PostgreSQL. Who is online is kept in memory on the server.
 
 ## Running locally
 
 You need Node 22+ and Docker.
 
-Start the databases:
+Start the database:
 
 ```bash
 npm run services
@@ -82,8 +76,6 @@ Backend environment variables (see `hangout-hub-backend/.env.example`):
 | `DATABASE_URL`           | Postgres connection string                     |
 | `DATABASE_SSL`           | `true` for hosted Postgres                     |
 | `DB_SYNCHRONIZE`         | create/update tables on start, default `true`  |
-| `REDIS_URL`              | use `rediss://` for TLS                        |
-| `ELASTICSEARCH_URL`      | credentials can be part of the url             |
 | `JWT_SECRET`             | required                                       |
 | `OWNER_PASSWORD`         | password for the owner account                 |
 
@@ -91,5 +83,5 @@ The client reads the API url from `src/environments/environment.ts` (and `enviro
 
 ## Deployment
 
-- Backend: Railway, built from `hangout-hub-backend/Dockerfile`.
+- Backend: any Node host or Docker (`hangout-hub-backend/Dockerfile`).
 - Client: Vercel, using the root `vercel.json`.
