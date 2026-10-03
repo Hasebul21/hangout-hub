@@ -9,6 +9,7 @@ export interface Post {
   dislikeCount: number;
   likedBy: number[];
   dislikedBy: number[];
+  commentCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,7 +25,7 @@ export function toPostView(post: Post, userId: number) {
   } else if (dislikedBy.includes(userId)) {
     myReaction = 'dislike';
   }
-  return { ...rest, myReaction };
+  return { ...rest, commentCount: rest.commentCount ?? 0, myReaction };
 }
 
 export const postMappings = {
@@ -37,6 +38,7 @@ export const postMappings = {
     dislikeCount: { type: 'integer' },
     likedBy: { type: 'integer' },
     dislikedBy: { type: 'integer' },
+    commentCount: { type: 'integer' },
     createdAt: { type: 'date' },
     updatedAt: { type: 'date' },
   },

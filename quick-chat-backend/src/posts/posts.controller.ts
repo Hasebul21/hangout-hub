@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { CommentsService } from './comments.service.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
 import { PostContentDto } from './dto/post-content.dto.js';
 import { ReactionDto } from './dto/reaction.dto.js';
@@ -22,7 +23,10 @@ import { PostsService } from './posts.service.js';
 @Controller('posts')
 @UseGuards(JwtAuthGuard)
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly commentsService: CommentsService,
+  ) {}
 
   @Get()
   async list(@CurrentUserId() userId: number, @Query() query: ListPostsDto) {
@@ -84,7 +88,8 @@ export class PostsController {
 
   @Delete(':id')
   @HttpCode(204)
-  remove(@Param('id') id: string, @CurrentUserId() userId: number) {
-    return this.postsService.remove(id, userId);
+  async remove(@Param('id') id: string, @CurrentUserId() userId: number) {
+    await this.postsService.remove(id, userId);
+    await this.commentsService.removeAllForPost(id);
   }
 }

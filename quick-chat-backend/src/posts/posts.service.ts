@@ -56,6 +56,7 @@ export class PostsService implements OnModuleInit {
       dislikeCount: 0,
       likedBy: [],
       dislikedBy: [],
+      commentCount: 0,
       createdAt: now,
       updatedAt: now,
     };
