@@ -3,7 +3,11 @@
   <div class="header-info">
     <span class="header-name">{{ selectedUser.userName }}</span>
     <span class="header-status">
-      <span class="online-dot" [class.offline]="!online"></span> {{ statusText() }}
+      @if (otherTyping) {
+        <span class="typing">typing...</span>
+      } @else {
+        <span class="online-dot" [class.offline]="!online"></span> {{ statusText() }}
+      }
     </span>
   </div>
 </div>
@@ -23,7 +27,7 @@
     </div>
   } @empty {
     <div class="empty-chat">
-      <mat-icon>waving_hand</mat-icon>
+      <span nz-icon nzType="smile" class="empty-icon"></span>
       <p>Say hello to {{ selectedUser.userName }}!</p>
     </div>
   }
@@ -31,8 +35,9 @@
 
 <div class="chat-input-bar">
   <input class="chat-input" placeholder="Type a message..." maxlength="1000" [(ngModel)]="content"
+    (ngModelChange)="onInput()"
     (keydown.enter)="send()" />
   <button class="send-btn" (click)="send()" [disabled]="!content.trim() || sending">
-    <mat-icon>send</mat-icon>
+    <span nz-icon nzType="send"></span>
   </button>
 </div>

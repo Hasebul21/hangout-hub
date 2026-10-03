@@ -3,7 +3,7 @@ import {
   AfterViewChecked, Component, ElementRef, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MatIconModule } from '@angular/material/icon';
+import { NzIconModule } from 'ng-zorro-antd/icon';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { Subscription } from 'rxjs';
 import { Message } from '../models/message';
@@ -15,7 +15,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, FormsModule, MatIconModule],
+  imports: [CommonModule, FormsModule, NzIconModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
@@ -30,27 +30,51 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   messages: Message[] = [];
   content = '';
   sending = false;
+  otherTyping = false;
   avatarUrl = avatarUrl;
   useDefaultAvatar = useDefaultAvatar;
 
   private scrollToBottom = false;
-  private subscription?: Subscription;
+  private subscription = new Subscription();
+  private typingTimer?: ReturnType<typeof setTimeout>;
+  private otherTypingTimer?: ReturnType<typeof setTimeout>;
+  private isTyping = false;
 
   constructor(private chatService: ChatService,
     private socket: SocketService,
     private msg: NzMessageService) { }
 
   ngOnInit(): void {
-    this.subscription = this.socket.on<Message>('message').subscribe(message => {
+    this.subscription.add(this.socket.on<Message>('message').subscribe(message => {
       if (this.belongsToThisChat(message)) {
         this.messages.push(message);
+        this.otherTyping = false;
         this.scrollToBottom = true;
       }
-    });
+    }));
+
+    this.subscription.add(this.socket.on<{ userId: number; typing: boolean }>('typing').subscribe(event => {
+      if (event.userId !== this.selectedUser.id) {
+        return;
+      }
+      this.otherTyping = event.typing;
+      // in case the "stopped typing" event never arrives
+      clearTimeout(this.otherTypingTimer);
+      if (event.typing) {
+        this.otherTypingTimer = setTimeout(() => this.otherTyping = false, 5000);
+      }
+    }));
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['selectedUser']) {
+      const previous = changes['selectedUser'].previousValue as User | undefined;
+      if (previous && this.isTyping) {
+        this.socket.emit('typing', { receiverId: previous.id, typing: false });
+        this.isTyping = false;
+      }
+      this.otherTyping = false;
+      this.content = '';
       this.loadMessages();
     }
   }
@@ -64,7 +88,26 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   }
 
   ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+    this.subscription.unsubscribe();
+    clearTimeout(this.typingTimer);
+    clearTimeout(this.otherTypingTimer);
+    this.stopTyping();
+  }
+
+  onInput() {
+    if (!this.isTyping) {
+      this.isTyping = true;
+      this.socket.emit('typing', { receiverId: this.selectedUser.id, typing: true });
+    }
+    clearTimeout(this.typingTimer);
+    this.typingTimer = setTimeout(() => this.stopTyping(), 2000);
+  }
+
+  private stopTyping() {
+    if (this.isTyping) {
+      this.isTyping = false;
+      this.socket.emit('typing', { receiverId: this.selectedUser.id, typing: false });
+    }
   }
 
   loadMessages() {
@@ -82,6 +125,8 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
     }
 
     this.sending = true;
+    clearTimeout(this.typingTimer);
+    this.stopTyping();
     try {
       const result = await this.socket.request<Message & { error?: string }>('send-message', {
         receiverId: this.selectedUser.id,
