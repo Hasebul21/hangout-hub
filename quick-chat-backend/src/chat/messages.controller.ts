@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
@@ -28,6 +29,15 @@ export class MessagesController {
     @Param('userId', ParseIntPipe) userId: number,
   ) {
     return this.messagesService.markAsRead(currentUserId, userId);
+  }
+
+  @Get(':userId/search')
+  search(
+    @CurrentUserId() currentUserId: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Query('q') q: string,
+  ) {
+    return this.messagesService.search(currentUserId, userId, q);
   }
 
   @Get(':userId')
