@@ -46,7 +46,6 @@ export class PostsService {
 
     const author = query.author?.trim();
     if (author) {
-      // match the start of the first or the last name
       qb.andWhere(
         '(author.userName ILIKE :start OR author.userName ILIKE :word)',
         {
@@ -102,14 +101,12 @@ export class PostsService {
 
   async remove(id: string, userId: number) {
     await this.findOwnPost(id, userId);
-    // comments and reactions go with it (on delete cascade)
+
     await this.posts.delete(id);
     await this.publishTrending();
     await this.publishPostCount(userId);
   }
 
-  // Liking removes an earlier dislike and the other way round, clicking the
-  // same button twice takes the vote back.
   async react(id: string, userId: number, type: ReactionType) {
     await this.dataSource.transaction(async (manager) => {
       const post = await manager.findOne(Post, {
@@ -196,7 +193,6 @@ export class PostsService {
     return post;
   }
 
-  // everyone watching the home page gets the new ranking
   private async publishTrending() {
     this.gateway.sendToAll('trending-posts', await this.trending());
   }

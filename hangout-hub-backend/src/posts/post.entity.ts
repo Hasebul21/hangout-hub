@@ -37,7 +37,6 @@ export class Post {
   @Column({ type: 'timestamptz', default: () => 'now()' })
   createdAt: Date;
 
-  // only changes when the text is edited, not on likes
   @Column({ type: 'timestamptz', default: () => 'now()' })
   updatedAt: Date;
 }

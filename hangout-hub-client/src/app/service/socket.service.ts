@@ -28,7 +28,6 @@ export class SocketService {
     this.socket = null;
   }
 
-  // works even if a component subscribes before the socket is connected
   on<T>(name: string): Observable<T> {
     return this.events$.pipe(
       filter(event => event.name === name),

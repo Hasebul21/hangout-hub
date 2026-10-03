@@ -46,12 +46,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // every tab of the same user joins the same room
     await client.join(userRoom(client.data.userId));
     this.presenceService.userConnected(client.data.userId);
     client.data.counted = true;
 
-    // the socket may have dropped while we were checking the token
     if (client.disconnected) {
       await this.handleDisconnect(client);
       return;
@@ -86,7 +84,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         Number(body?.receiverId),
         body?.content,
       );
-      // the receiver, and the sender's other tabs
+
       client
         .to(userRoom(message.receiverId))
         .to(userRoom(senderId))

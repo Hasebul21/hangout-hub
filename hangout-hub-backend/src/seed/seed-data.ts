@@ -1,11 +1,8 @@
-// Content created on first start so the app has something to show.
-// Demo accounts are clearly marked in the UI and can't be logged into.
-
 export const OWNER = {
   key: 'owner',
   userName: 'Hasebul Hassan',
   email: 'hasebulhassan21@gmail.com',
-  // only used locally, set OWNER_PASSWORD in production
+
   defaultPassword: 'hasebul123',
   professionalTitle: 'Software Engineer',
   portfolio: 'https://github.com/Hasebul21',
@@ -52,7 +49,6 @@ export const DEMO_USERS = [
   },
 ].map((user) => ({ ...user, bio: DEMO_BIO }));
 
-// hoursAgo keeps the feed in a natural order
 export const SEED_POSTS = [
   {
     key: 'nest',
@@ -161,7 +157,6 @@ export const SEED_COMMENTS = [
   },
 ];
 
-// who liked which post
 export const SEED_LIKES: Record<string, string[]> = {
   nest: ['elon', 'mark', 'steve', 'donald'],
   tests: ['mark', 'steve', 'elon'],

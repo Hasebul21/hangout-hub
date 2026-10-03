@@ -6,9 +6,6 @@ import { io, Socket } from 'socket.io-client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 
-// Runs against the services from docker-compose (postgres, redis, elasticsearch).
-// Every run creates its own users, so it can be run again and again.
-
 const run = Date.now();
 
 describe('Hangout Hub API (e2e)', () => {
@@ -87,7 +84,7 @@ describe('Hangout Hub API (e2e)', () => {
 
   afterAll(async () => {
     sockets.forEach((socket) => socket.close());
-    // let the server handle the disconnects before redis goes away
+
     await new Promise((resolve) => setTimeout(resolve, 500));
     await app.close();
   });

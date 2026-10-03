@@ -7,7 +7,6 @@ import { Message } from './message.entity.js';
 
 const MAX_LENGTH = 1000;
 
-// both users get the same id no matter who sends first
 export function conversationId(a: number, b: number) {
   return a < b ? `${a}_${b}` : `${b}_${a}`;
 }
@@ -50,7 +49,7 @@ export class MessagesService {
       order: { createdAt: 'DESC' },
       take: 100,
     });
-    // newest 100, shown oldest first
+
     return messages.reverse();
   }
 
@@ -72,7 +71,6 @@ export class MessagesService {
       .getMany();
   }
 
-  // number of unread messages per sender, for the current user
   async unreadCounts(userId: number) {
     const rows = await this.messages
       .createQueryBuilder('message')

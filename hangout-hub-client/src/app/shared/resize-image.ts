@@ -1,5 +1,3 @@
-// Crops the picture to a square and shrinks it before upload, so the server
-// only ever receives a small JPEG.
 export function resizeImage(file: File, size = 400): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);

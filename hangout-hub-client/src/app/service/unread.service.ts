@@ -7,8 +7,6 @@ import { ChatService } from './chat.service';
 import { SocketService } from './socket.service';
 import { UserService } from './user.service';
 
-// Keeps unread message counts per contact for the whole app, so the navbar and
-// the contact list show the same numbers.
 @Injectable({
   providedIn: 'root'
 })
@@ -59,7 +57,6 @@ export class UnreadService {
   private showNotification(message: Message) {
     const name = this.names.get(message.senderId);
     if (!name) {
-      // someone who signed up after we loaded the list
       this.loadNames();
     }
     this.notification.info(name ? `New message from ${name}` : 'New message', message.content.slice(0, 80), {

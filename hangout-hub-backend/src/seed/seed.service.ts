@@ -19,7 +19,7 @@ import {
 } from './seed-data.js';
 
 const HOUR = 60 * 60 * 1000;
-// any number works, it just has to be the same for every server
+
 const SEED_LOCK = 734001;
 
 @Injectable()
@@ -38,15 +38,12 @@ export class SeedService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    // Several servers can start at the same time, only one of them should seed.
-    // A transaction lock works through connection poolers, a session lock doesn't.
     try {
       await this.dataSource.transaction(async (manager) => {
         await manager.query('SELECT pg_advisory_xact_lock($1)', [SEED_LOCK]);
         await this.seed();
       });
     } catch (err) {
-      // a failed seed should never stop the app from starting
       this.logger.error(
         'Seeding failed',
         err instanceof Error ? err.stack : err,
@@ -57,7 +54,6 @@ export class SeedService implements OnApplicationBootstrap {
   private async seed() {
     const owner = await this.seedOwner();
 
-    // everything else is only created once, on an empty database
     const alreadySeeded = await this.users.existsBy({
       email: DEMO_USERS[0].email,
     });
@@ -83,7 +79,7 @@ export class SeedService implements OnApplicationBootstrap {
     const existing = await this.users.findOneBy({ email: OWNER.email });
     if (existing) {
       existing.isOwner = true;
-      // keep the owner password in sync with the environment
+
       if (configured) {
         existing.password = await bcrypt.hash(configured, 10);
       }
@@ -113,7 +109,7 @@ export class SeedService implements OnApplicationBootstrap {
       this.users.create({
         userName: demo.userName,
         email: demo.email,
-        // nobody knows this password, so the account can't be used to log in
+
         password: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
         professionalTitle: 'Demo account',
         bio: demo.bio,
@@ -155,7 +151,7 @@ export class SeedService implements OnApplicationBootstrap {
   ) {
     for (const [index, item] of SEED_COMMENTS.entries()) {
       const post = posts.get(item.post)!;
-      // a little while after the post, in order
+
       const date = new Date(
         post.createdAt.getTime() + (index + 1) * 20 * 60 * 1000,
       );

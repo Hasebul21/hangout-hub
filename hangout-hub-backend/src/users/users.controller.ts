@@ -20,7 +20,6 @@ import { UsersService } from './users.service.js';
 
 const DEFAULT_AVATAR = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#e2e4f0"/><circle cx="32" cy="25" r="12" fill="#a3a8c3"/><path d="M10 58c2-12 11-18 22-18s20 6 22 18z" fill="#a3a8c3"/></svg>`;
 
-// Other people's email addresses stay private
 function hideEmail(user: User, currentUserId: number) {
   if (user.id === currentUserId) {
     return user;
@@ -63,7 +62,6 @@ export class UsersController {
     return hideEmail(user, currentUserId);
   }
 
-  // public on purpose, <img> tags can't send the auth header
   @Get(':id/avatar')
   async avatar(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     const avatar = await this.usersService.findAvatar(id);
