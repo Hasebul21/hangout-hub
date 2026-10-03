@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -30,6 +31,11 @@ export class PostsController {
       ...page,
       items: page.items.map((post) => toPostView(post, userId)),
     };
+  }
+
+  @Get('count/:userId')
+  async count(@Param('userId', ParseIntPipe) userId: number) {
+    return { count: await this.postsService.countByAuthor(userId) };
   }
 
   @Get('trending')

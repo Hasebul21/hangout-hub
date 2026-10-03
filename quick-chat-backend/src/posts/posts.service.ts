@@ -61,6 +61,7 @@ export class PostsService implements OnModuleInit {
     };
     await this.save(post);
     await this.publishTrending();
+    await this.publishPostCount(user.id);
     return post;
   }
 
@@ -116,6 +117,19 @@ export class PostsService implements OnModuleInit {
       `/${POSTS_INDEX}/_doc/${encodeURIComponent(id)}?refresh=true`,
     );
     await this.publishTrending();
+    await this.publishPostCount(userId);
+  }
+
+  async countByAuthor(authorId: number) {
+    const data = await this.elastic.request('POST', `/${POSTS_INDEX}/_count`, {
+      query: { term: { authorId } },
+    });
+    return data.count as number;
+  }
+
+  private async publishPostCount(userId: number) {
+    const count = await this.countByAuthor(userId);
+    this.gateway.sendToUser(userId, 'post-count', { count });
   }
 
   async react(id: string, userId: number, type: Reaction) {
