@@ -63,7 +63,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loggedInUser = this.authService.currentUser;
-    // search as you type, but don't hit the server on every key
+
     this.subscription = this.authorChanges.pipe(debounceTime(300)).subscribe(() => this.search());
     this.loadPosts();
     this.userService.getUsers().subscribe(users => {
@@ -157,7 +157,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
     this.postService.deletePost(post.id).subscribe({
       next: () => {
         this.msg.success('Post deleted');
-        // go back a page if we just removed the last post on this one
+
         if (this.posts.length === 1 && this.page > 1) {
           this.page--;
         }
@@ -187,7 +187,6 @@ export class PostviewComponent implements OnInit, OnDestroy {
     const [from, to] = this.dateRange ?? [];
     let toDate: Date | undefined;
     if (to) {
-      // include the whole last day
       toDate = new Date(to);
       toDate.setHours(23, 59, 59, 999);
     }

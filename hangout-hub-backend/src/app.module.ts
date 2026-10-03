@@ -15,7 +15,7 @@ import { SeedModule } from './seed/seed.module.js';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        // passed in directly so bundlers include the driver
+
         driver: pg,
         url: config.get('DATABASE_URL'),
         ssl: config.get('DATABASE_SSL') === 'true',

@@ -1,4 +1,3 @@
-/* Chat header */
 .chat-header {
   display: flex;
   align-items: center;
@@ -48,7 +47,6 @@
   }
 }
 
-/* Messages area */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -69,7 +67,6 @@
   }
 }
 
-/* Message row */
 .msg-row {
   display: flex;
   align-items: flex-end;
@@ -149,7 +146,6 @@
   }
 }
 
-/* Empty state */
 .empty-chat {
   margin: auto;
   text-align: center;
@@ -169,7 +165,6 @@
   }
 }
 
-/* Input bar */
 .chat-input-bar {
   display: flex;
   align-items: center;

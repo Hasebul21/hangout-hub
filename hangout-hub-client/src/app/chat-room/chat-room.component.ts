@@ -42,12 +42,11 @@ export class ChatRoomComponent implements OnInit, OnDestroy {
     this.userService.getUsers().subscribe(users => {
       this.users = users.filter(user => user.id !== this.me?.id);
 
-      // opened from "chat" buttons elsewhere, e.g. /chatroom?user=3
       const userId = Number(this.route.snapshot.queryParamMap.get('user'));
       if (userId) {
         this.selectedUser = this.users.find(user => user.id === userId) ?? null;
       }
-      // otherwise start with the owner, so there is always someone to talk to
+
       if (!this.selectedUser) {
         this.selectedUser = this.users.find(user => user.isOwner) ?? this.users[0] ?? null;
       }

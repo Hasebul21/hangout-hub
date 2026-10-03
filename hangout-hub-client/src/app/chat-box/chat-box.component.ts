@@ -63,7 +63,7 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
         return;
       }
       this.otherTyping = event.typing;
-      // in case the "stopped typing" event never arrives
+
       clearTimeout(this.otherTypingTimer);
       if (event.typing) {
         this.otherTypingTimer = setTimeout(() => this.otherTyping = false, 5000);

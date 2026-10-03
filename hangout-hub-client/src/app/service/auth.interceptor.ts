@@ -19,7 +19,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      // token expired or invalid, send the user back to login
       if (error.status === 401 && auth.token) {
         socket.disconnect();
         unread.stop();

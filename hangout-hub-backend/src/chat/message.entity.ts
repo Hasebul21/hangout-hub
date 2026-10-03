@@ -12,7 +12,6 @@ export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // "smallerId_biggerId", the same for both people in the chat
   @Column({ length: 40 })
   conversationId: string;
 

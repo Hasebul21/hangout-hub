@@ -2,7 +2,6 @@ import { Comment } from './comment.entity.js';
 import { Post } from './post.entity.js';
 import { ReactionType } from './reaction.entity.js';
 
-// the shape the client gets, with the author's name flattened in
 export function toPostView(post: Post, myReaction: ReactionType | null = null) {
   return {
     id: post.id,
@@ -29,7 +28,6 @@ export function toCommentView(comment: Comment) {
   };
 }
 
-// so a search for "50%" doesn't turn into a wildcard
 export function escapeLike(text: string) {
   return text.replace(/[\\%_]/g, '\\$&');
 }

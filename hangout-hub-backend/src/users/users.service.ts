@@ -68,7 +68,6 @@ export class UsersService {
 
     for (const [key, value] of Object.entries(changes)) {
       if (value !== undefined) {
-        // an empty field clears the value
         (user as any)[key] = value.trim() === '' ? null : value.trim();
       }
     }
@@ -89,9 +88,7 @@ export class UsersService {
     return user?.avatar ?? null;
   }
 
-  // the browser already resizes the picture, we only check what we get
   private async checkAvatar(image: Express.Multer.File) {
-    // don't trust the declared type, every JPEG starts with FF D8 FF
     const bytes = image.buffer;
     const isJpeg =
       bytes.length > 3 &&

@@ -30,7 +30,4 @@ yarn.lock
 logs/
 *.gz
 
-# Environment files (Keep `.example.env` for reference)
 *.env
-# environment.prod.ts contains the production backend URL
-# src/environments/environment.prod.ts

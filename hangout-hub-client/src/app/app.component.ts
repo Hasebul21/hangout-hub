@@ -7,17 +7,14 @@ import { UnreadService } from './service/unread.service';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet],
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  templateUrl: './app.component.html'
 })
 export class AppComponent implements OnInit {
-
   constructor(private auth: AuthService,
     private socket: SocketService,
     private unread: UnreadService) { }
 
   ngOnInit() {
-    // reconnect after a page refresh
     if (this.auth.isLoggedIn()) {
       this.socket.connect(this.auth.token!);
       this.unread.start();

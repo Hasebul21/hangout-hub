@@ -11,7 +11,6 @@
     overflow: hidden;
 }
 
-/* ---- Banner ---- */
 .profile-banner {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 32px 28px;
@@ -63,7 +62,6 @@
     }
 }
 
-/* ---- Edit Section ---- */
 .edit-section {
     padding: 28px;
 }
@@ -133,7 +131,6 @@
     }
 }
 
-/* File input */
 .file-input-wrap {
     input[type="file"] {
         display: none;
@@ -164,7 +161,6 @@
     }
 }
 
-/* Form actions */
 .form-actions {
     display: flex;
     justify-content: flex-end;
@@ -213,9 +209,9 @@
     border-radius: 10px;
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
     padding: 16px;
-    /* less padding */
+
     width: 460px;
-    /* increased width */
+
     text-align: center;
 }
 
@@ -246,13 +242,13 @@ textarea {
 
 textarea {
     height: 60px;
-    /* reduce height */
+
     resize: none;
 }
 
 button {
     padding: 6px 10px;
-    /* smaller button */
+
     background-color: #007bff;
     color: #fff;
     border: none;

@@ -6,9 +6,6 @@ export interface Presence {
   lastSeen: Record<number, string>;
 }
 
-// Keeps track of who is online. A user can have more than one tab open, so we
-// count connections per user and only mark them offline when the last one goes.
-// Kept in memory, which is fine while the app runs as a single server.
 @Injectable()
 export class PresenceService {
   private connections = new Map<number, number>();
@@ -33,7 +30,6 @@ export class PresenceService {
   async getPresence(): Promise<Presence> {
     const ids = [...this.connections.keys()];
 
-    // the owner always shows as available
     const owner = await this.usersService.findOwner();
     if (owner && !ids.includes(owner.id)) {
       ids.push(owner.id);
