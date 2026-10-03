@@ -1,6 +1,7 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS } from '../redis/redis.module.js';
+import { UsersService } from '../users/users.service.js';
 
 const CONNECTIONS_KEY = 'presence:connections';
 const LAST_SEEN_KEY = 'presence:last-seen';
@@ -14,7 +15,10 @@ export interface Presence {
 // count connections per user and only mark them offline when the last one goes.
 @Injectable()
 export class PresenceService implements OnModuleInit {
-  constructor(@Inject(REDIS) private readonly redis: Redis) {}
+  constructor(
+    @Inject(REDIS) private readonly redis: Redis,
+    private readonly usersService: UsersService,
+  ) {}
 
   async onModuleInit() {
     // sockets don't survive a restart, so old counts are meaningless
@@ -38,11 +42,14 @@ export class PresenceService implements OnModuleInit {
   }
 
   async getPresence(): Promise<Presence> {
-    const ids = await this.redis.hkeys(CONNECTIONS_KEY);
+    const ids = (await this.redis.hkeys(CONNECTIONS_KEY)).map(Number);
     const lastSeen = await this.redis.hgetall(LAST_SEEN_KEY);
-    return {
-      onlineUserIds: ids.map(Number),
-      lastSeen,
-    };
+
+    // the owner always shows as available
+    const owner = await this.usersService.findOwner();
+    if (owner && !ids.includes(owner.id)) {
+      ids.push(owner.id);
+    }
+    return { onlineUserIds: ids, lastSeen };
   }
 }
