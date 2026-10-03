@@ -1,103 +1,114 @@
 <app-navbar></app-navbar>
 
 <div class="feed-page">
-  <!-- Toolbar -->
   <div class="feed-toolbar">
     <h2 class="feed-title"><mat-icon>dynamic_feed</mat-icon> Community Feed</h2>
     <div class="toolbar-right">
       <div class="search-wrap">
         <mat-icon class="search-icon">person_search</mat-icon>
-        <input class="search-input" placeholder="Search by username…" [(ngModel)]="filter.creatorName"
-          (ngModelChange)="applyFilter()" />
-        <button class="clear-btn" *ngIf="filter.creatorName" (click)="resetFilter()">
-          <mat-icon>close</mat-icon>
-        </button>
+        <input class="search-input" placeholder="Search by username..." [(ngModel)]="author"
+          (ngModelChange)="onAuthorChange($event)" />
+        @if (author) {
+          <button class="clear-btn" (click)="author = ''; search()">
+            <mat-icon>close</mat-icon>
+          </button>
+        }
       </div>
-      <button class="filter-toggle-btn" (click)="openFilterOptions()" [class.active]="showFilterOptions"
-        title="Advanced filters">
+      <button class="filter-toggle-btn" (click)="showFilterOptions = !showFilterOptions"
+        [class.active]="showFilterOptions" title="More filters">
         <mat-icon>tune</mat-icon>
       </button>
     </div>
   </div>
 
-  <!-- Advanced Filter Panel -->
-  <div class="filter-panel" *ngIf="showFilterOptions">
-    <div class="filter-row">
-      <div class="filter-field">
-        <label class="filter-label">Keyword</label>
-        <div class="search-wrap compact">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input class="search-input" placeholder="Search in content…" [(ngModel)]="filter.content" />
+  @if (showFilterOptions) {
+    <div class="filter-panel">
+      <div class="filter-row">
+        <div class="filter-field">
+          <label class="filter-label">Keyword</label>
+          <div class="search-wrap compact">
+            <mat-icon class="search-icon">search</mat-icon>
+            <input class="search-input" placeholder="Search in posts..." [(ngModel)]="keyword"
+              (keydown.enter)="search()" />
+          </div>
+        </div>
+        <div class="filter-field">
+          <label class="filter-label">Posted between</label>
+          <nz-range-picker class="date-range" [(ngModel)]="dateRange"></nz-range-picker>
         </div>
       </div>
-
-      <div class="filter-field">
-        <label class="filter-label">Date from</label>
-        <input type="date" class="date-input" [(ngModel)]="filter.createdDate.gte" />
-      </div>
-
-      <div class="filter-field">
-        <label class="filter-label">Date to</label>
-        <input type="date" class="date-input" [(ngModel)]="filter.createdDate.lte" />
+      <div class="filter-actions">
+        <button class="btn-apply" (click)="search()">
+          <mat-icon>search</mat-icon> Search
+        </button>
+        <button class="btn-reset" (click)="resetFilter()">
+          <mat-icon>refresh</mat-icon> Reset
+        </button>
       </div>
     </div>
+  }
 
-    <div class="filter-actions">
-      <button class="btn-apply" (click)="applyFilter()">
-        <mat-icon>search</mat-icon> Search
-      </button>
-      <button class="btn-reset" (click)="resetFilter()">
-        <mat-icon>refresh</mat-icon> Reset
-      </button>
-    </div>
-  </div>
-
-  <!-- Posts list -->
   <div class="posts-list">
-    <div class="post-card" *ngFor="let post of filteredPosts; let i = index">
-      <div class="post-card-header">
-        <img class="post-avatar"
-          [src]="post.creatorImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.creatorName"
-          (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="avatar" />
-        <div class="post-meta">
-          <span class="post-author">{{ post.creatorName }}</span>
-          <span class="post-time">{{ post.createdDate | date: 'MMM d, y · h:mm a' }}</span>
+    @for (post of posts; track post.id) {
+      <div class="post-card">
+        <div class="post-card-header">
+          <img class="post-avatar" [src]="avatarUrl(post.authorId)" (error)="useDefaultAvatar($event)" alt="avatar" />
+          <div class="post-meta">
+            <span class="post-author">{{ post.authorName }}</span>
+            <span class="post-time">
+              {{ post.createdAt | date: 'MMM d, y, h:mm a' }}
+              @if (wasEdited(post)) {
+                <span class="edited">(edited)</span>
+              }
+            </span>
+          </div>
+          @if (isMine(post)) {
+            <div class="post-owner-actions">
+              <button class="icon-btn" title="Edit" (click)="openEdit(post)"><mat-icon>edit</mat-icon></button>
+              <button class="icon-btn danger" title="Delete" nz-popconfirm nzPopconfirmTitle="Delete this post?"
+                nzOkText="Delete" nzOkDanger (nzOnConfirm)="deletePost(post)">
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
         </div>
-        <div class="post-owner-actions" *ngIf="loggedInUser?.userEmail === post.creatorEmail">
-          <button class="icon-btn" title="Edit" (click)="editPost(post)"><mat-icon>edit</mat-icon></button>
-          <button class="icon-btn danger" title="Delete"
-            (click)="deletePost(post)"><mat-icon>delete_outline</mat-icon></button>
+
+        <p class="post-body">{{ post.content }}</p>
+
+        <div class="post-card-footer">
+          <button class="reaction-btn like" [class.active]="post.myReaction === 'like'" (click)="react(post, 'like')">
+            <mat-icon>thumb_up</mat-icon>
+            <span>{{ post.likeCount }}</span>
+          </button>
+          <button class="reaction-btn dislike" [class.active]="post.myReaction === 'dislike'"
+            (click)="react(post, 'dislike')">
+            <mat-icon>thumb_down</mat-icon>
+            <span>{{ post.dislikeCount }}</span>
+          </button>
         </div>
       </div>
-
-      <p class="post-body">{{ post.content }}</p>
-
-      <div class="post-card-footer">
-        <button class="reaction-btn like" (click)="updateLikeCount(i, true)">
-          <mat-icon>thumb_up</mat-icon>
-          <span>{{ post.likeCount }}</span>
-        </button>
-        <button class="reaction-btn dislike" (click)="updateLikeCount(i, false)">
-          <mat-icon>thumb_down</mat-icon>
-          <span>{{ post.dislikeCount }}</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="empty-state" *ngIf="filteredPosts.length === 0">
-      <mat-icon>sentiment_dissatisfied</mat-icon>
-      <p>No posts found.</p>
-    </div>
+    } @empty {
+      @if (!loading) {
+        <div class="empty-state">
+          <mat-icon>sentiment_dissatisfied</mat-icon>
+          <p>No posts found.</p>
+        </div>
+      }
+    }
   </div>
 
-  <!-- Pagination -->
-  <div class="pagination" *ngIf="totalPages > 1">
-    <button class="page-btn" (click)="prevPage()" [disabled]="currentPage === 1">
-      <mat-icon>chevron_left</mat-icon>
-    </button>
-    <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-    <button class="page-btn" (click)="nextPage()" [disabled]="currentPage === totalPages">
-      <mat-icon>chevron_right</mat-icon>
-    </button>
-  </div>
+  @if (total > pageSize) {
+    <div class="pagination">
+      <nz-pagination [nzPageIndex]="page" [nzTotal]="total" [nzPageSize]="pageSize"
+        (nzPageIndexChange)="onPageChange($event)"></nz-pagination>
+    </div>
+  }
 </div>
+
+<nz-modal [nzVisible]="!!editingPost" nzTitle="Edit post" nzOkText="Save" [nzOkLoading]="saving"
+  [nzOkDisabled]="!editContent.trim()" (nzOnOk)="saveEdit()" (nzOnCancel)="closeEdit()">
+  <ng-container *nzModalContent>
+    <textarea nz-input class="edit-textarea" rows="6" maxlength="500" [(ngModel)]="editContent"></textarea>
+    <div class="edit-counter">{{ editContent.length }} / 500</div>
+  </ng-container>
+</nz-modal>
