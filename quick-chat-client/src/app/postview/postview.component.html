@@ -54,7 +54,12 @@
         <div class="post-card-header">
           <img class="post-avatar" [src]="avatarUrl(post.authorId)" (error)="useDefaultAvatar($event)" alt="avatar" />
           <div class="post-meta">
-            <span class="post-author">{{ post.authorName }}</span>
+            <span class="post-author">
+              {{ post.authorName }}
+              @if (demoUserIds.has(post.authorId)) {
+                <nz-tag class="demo-tag">Demo</nz-tag>
+              }
+            </span>
             <span class="post-time">
               {{ post.createdAt | date: 'MMM d, y, h:mm a' }}
               @if (wasEdited(post)) {

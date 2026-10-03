@@ -10,6 +10,7 @@ export interface User {
   hobbies: string | null;
   instagram: string | null;
   isOwner: boolean;
+  isDemo: boolean;
   createdAt: string;
   updatedAt: string;
 }
