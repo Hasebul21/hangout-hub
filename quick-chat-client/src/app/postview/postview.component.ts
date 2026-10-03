@@ -8,12 +8,14 @@ import { NzMessageService } from 'ng-zorro-antd/message';
 import { NzModalModule } from 'ng-zorro-antd/modal';
 import { NzPaginationModule } from 'ng-zorro-antd/pagination';
 import { NzPopconfirmModule } from 'ng-zorro-antd/popconfirm';
+import { NzTagModule } from 'ng-zorro-antd/tag';
 import { Subject, Subscription, debounceTime } from 'rxjs';
 import { Post, PostFilter, Reaction } from '../models/post';
 import { User } from '../models/user';
 import { NavbarComponent } from '../navbar/navbar.component';
 import { AuthService } from '../service/auth.service';
 import { PostService } from '../service/post.service';
+import { UserService } from '../service/user.service';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
 
 const PAGE_SIZE = 8;
@@ -22,7 +24,7 @@ const PAGE_SIZE = 8;
   selector: 'app-postview',
   imports: [
     CommonModule, FormsModule, MatIconModule, NavbarComponent,
-    NzPaginationModule, NzDatePickerModule, NzModalModule, NzPopconfirmModule, NzInputModule
+    NzPaginationModule, NzDatePickerModule, NzModalModule, NzPopconfirmModule, NzInputModule, NzTagModule
   ],
   templateUrl: './postview.component.html',
   styleUrls: ['./postview.component.scss']
@@ -40,6 +42,8 @@ export class PostviewComponent implements OnInit, OnDestroy {
   keyword = '';
   dateRange: Date[] = [];
 
+  demoUserIds = new Set<number>();
+
   editingPost: Post | null = null;
   editContent = '';
   saving = false;
@@ -52,6 +56,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
 
   constructor(private postService: PostService,
     private authService: AuthService,
+    private userService: UserService,
     private msg: NzMessageService) { }
 
   ngOnInit(): void {
@@ -59,6 +64,9 @@ export class PostviewComponent implements OnInit, OnDestroy {
     // search as you type, but don't hit the server on every key
     this.subscription = this.authorChanges.pipe(debounceTime(300)).subscribe(() => this.search());
     this.loadPosts();
+    this.userService.getUsers().subscribe(users => {
+      this.demoUserIds = new Set(users.filter(user => user.isDemo).map(user => user.id));
+    });
   }
 
   ngOnDestroy(): void {

@@ -17,7 +17,7 @@ export interface Message {
 }
 
 // both users get the same id no matter who sends first
-function conversationId(a: number, b: number) {
+export function conversationId(a: number, b: number) {
   return a < b ? `${a}_${b}` : `${b}_${a}`;
 }
 

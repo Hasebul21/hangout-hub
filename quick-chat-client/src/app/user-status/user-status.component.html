@@ -26,6 +26,9 @@
             @if (user.isOwner) {
               <nz-tag nzColor="purple" class="owner-tag">Owner</nz-tag>
             }
+            @if (user.isDemo) {
+              <nz-tag class="owner-tag">Demo</nz-tag>
+            }
           </span>
           <span class="contact-sub">{{ statusText(user) }}</span>
         </div>
