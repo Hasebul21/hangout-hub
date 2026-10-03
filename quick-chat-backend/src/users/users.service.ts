@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
 import { Repository } from 'typeorm';
+import { OWNER } from '../seed/owner.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { User } from './user.entity.js';
 
@@ -20,7 +21,7 @@ export class UsersService {
   async create(userName: string, email: string, password: string) {
     email = email.toLowerCase();
     const existing = await this.users.findOneBy({ email });
-    if (existing) {
+    if (existing || email === OWNER.email) {
       throw new ConflictException('An account with this email already exists');
     }
 
