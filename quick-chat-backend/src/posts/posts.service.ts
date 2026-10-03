@@ -5,10 +5,17 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { ChatGateway } from '../chat/chat.gateway.js';
 import { ElasticService } from '../elastic/elastic.service.js';
 import { UsersService } from '../users/users.service.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
-import { Post, POSTS_INDEX, postMappings, Reaction } from './post.js';
+import {
+  Post,
+  POSTS_INDEX,
+  postMappings,
+  Reaction,
+  toPostView,
+} from './post.js';
 
 // Toggles the user's vote. Liking removes an earlier dislike and the other way
 // round, clicking the same button twice takes the vote back.
@@ -30,6 +37,7 @@ export class PostsService implements OnModuleInit {
   constructor(
     private readonly elastic: ElasticService,
     private readonly usersService: UsersService,
+    private readonly gateway: ChatGateway,
   ) {}
 
   async onModuleInit() {
@@ -52,6 +60,7 @@ export class PostsService implements OnModuleInit {
       updatedAt: now,
     };
     await this.save(post);
+    await this.publishTrending();
     return post;
   }
 
@@ -79,6 +88,7 @@ export class PostsService implements OnModuleInit {
     post.content = content;
     post.updatedAt = new Date().toISOString();
     await this.save(post);
+    await this.publishTrending();
     return post;
   }
 
@@ -88,6 +98,7 @@ export class PostsService implements OnModuleInit {
       'DELETE',
       `/${POSTS_INDEX}/_doc/${encodeURIComponent(id)}?refresh=true`,
     );
+    await this.publishTrending();
   }
 
   async react(id: string, userId: number, type: Reaction) {
@@ -97,7 +108,26 @@ export class PostsService implements OnModuleInit {
       `/${POSTS_INDEX}/_update/${encodeURIComponent(id)}?refresh=true&retry_on_conflict=3`,
       { script: { source: REACT_SCRIPT, params: { userId, type } } },
     );
+    await this.publishTrending();
     return this.findOne(id);
+  }
+
+  async trending() {
+    const { items } = await this.elastic.search<Post>(POSTS_INDEX, {
+      query: { range: { likeCount: { gt: 0 } } },
+      sort: [{ likeCount: 'desc' }, { createdAt: 'desc' }],
+      size: 8,
+    });
+    return items;
+  }
+
+  // everyone watching the home page gets the new ranking
+  private async publishTrending() {
+    const posts = await this.trending();
+    this.gateway.sendToAll(
+      'trending-posts',
+      posts.map((post) => toPostView(post, 0)),
+    );
   }
 
   private async findOwnPost(id: string, userId: number) {
