@@ -47,6 +47,9 @@ export class User {
   @Column({ default: false })
   isDemo: boolean;
 
+  @Column({ default: false })
+  isGuest: boolean;
+
   @Column({ type: 'bytea', nullable: true, select: false })
   avatar: Buffer | null;
 
