@@ -47,7 +47,9 @@ export class ElasticService {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Elasticsearch ${method} ${path} -> ${res.status}: ${text}`);
+      throw new Error(
+        `Elasticsearch ${method} ${path} -> ${res.status}: ${text}`,
+      );
     }
     return (await res.json()) as T;
   }
