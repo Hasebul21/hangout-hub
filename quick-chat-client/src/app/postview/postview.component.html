@@ -90,7 +90,15 @@
             <mat-icon>thumb_down</mat-icon>
             <span>{{ post.dislikeCount }}</span>
           </button>
+          <button class="reaction-btn like" [class.active]="openComments.has(post.id)" (click)="toggleComments(post)">
+            <mat-icon>chat_bubble_outline</mat-icon>
+            <span>{{ post.commentCount }}</span>
+          </button>
         </div>
+
+        @if (openComments.has(post.id)) {
+          <app-post-comments [post]="post" (countChange)="onCommentCount(post, $event)"></app-post-comments>
+        }
       </div>
     } @empty {
       @if (!loading) {
