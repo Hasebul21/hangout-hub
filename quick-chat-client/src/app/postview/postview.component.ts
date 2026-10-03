@@ -18,7 +18,7 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { AuthService } from '../service/auth.service';
 import { NavbarComponent } from "../navbar/navbar.component";
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { MatDialog } from '@angular/material/dialog';
 import { PosteditComponent } from '../postedit/postedit.component';
 
@@ -80,7 +80,7 @@ export class PostviewComponent {
 
   constructor(private postService: PostService,
     private authService: AuthService,
-    private toastr: ToastrService
+    private msg: NzMessageService
   ) { }
 
   ngOnInit(): void {
@@ -221,10 +221,10 @@ export class PostviewComponent {
       if (result) {
         console.log(result);
         this.postService.updatePost(post.postId, result).subscribe((response) => {
-          this.toastr.success('Post updated successfully:', 'Success');
+          this.msg.success('Post updated successfully:');
           this.loadPosts();
         }, (error) => {
-          this.toastr.error('Error updating post', 'Error');
+          this.msg.error('Error updating post');
         });
       }
     }
@@ -233,10 +233,10 @@ export class PostviewComponent {
 
   deletePost(post: any): void {
     this.postService.deletePost(post.postId).subscribe((response) => {
-      this.toastr.success('Post deleted successfully:', 'Success');
+      this.msg.success('Post deleted successfully:');
       this.loadPosts();
     }, (error) => {
-      this.toastr.error('Error deleting post', 'Error');
+      this.msg.error('Error deleting post');
     });
   }
 }

@@ -17,7 +17,7 @@ import { PostService } from '../service/post.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NavbarComponent } from "../navbar/navbar.component";
 import { TrendingPostComponent } from "../trending-post/trending-post.component";
-import { ToastrService } from 'ngx-toastr';
+import { NzMessageService } from 'ng-zorro-antd/message';
 import { ProfileSectionComponent } from "../profile-section/profile-section.component";
 import { DEFAULT_USERS } from '../mock-data';
 
@@ -58,7 +58,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
   constructor(private authService: AuthService,
     private postService: PostService,
-    private toastr: ToastrService
+    private msg: NzMessageService
   ) { }
   ngAfterViewInit(): void {
     //this.postService.getMostLikedPost().subscribe();
@@ -81,10 +81,10 @@ export class HomeComponent implements OnInit, AfterViewInit {
     this.newPostContent = '';
     this.postService.persistPost(newPost).subscribe(
       response => {
-        this.toastr.success('User logged in successfully!', 'Success');
+        this.msg.success('User logged in successfully!');
       },
       error => {
-        this.toastr.success('User logged in successfully!', 'Success');
+        this.msg.success('User logged in successfully!');
       }
     );
   }

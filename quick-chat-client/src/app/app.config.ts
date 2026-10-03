@@ -1,10 +1,16 @@
+import { registerLocaleData } from '@angular/common';
+import en from '@angular/common/locales/en';
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideRouter } from '@angular/router';
-import { provideToastr } from 'ngx-toastr';
+import { en_US, provideNzI18n } from 'ng-zorro-antd/i18n';
+import { provideNzIcons } from 'ng-zorro-antd/icon';
 import { routes } from './app.routes';
+import { icons } from './icons';
 import { authInterceptor } from './service/auth.interceptor';
+
+registerLocaleData(en);
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -12,10 +18,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAnimations(),
-    provideToastr({
-      positionClass: 'toast-top-right',
-      closeButton: true,
-      timeOut: 2500
-    })
+    provideNzI18n(en_US),
+    provideNzIcons(icons)
   ]
 };
