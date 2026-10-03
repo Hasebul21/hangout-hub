@@ -1,5 +1,5 @@
 {
-  "name": "quick-chat",
+  "name": "hangout-hub",
   "private": true,
   "description": "Runs the whole stack with Docker Compose",
   "scripts": {

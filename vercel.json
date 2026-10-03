@@ -1,6 +1,6 @@
 {
-    "buildCommand": "cd quick-chat-client && npm install && npm run build:vercel",
-    "outputDirectory": "quick-chat-client/dist/quick-chat/browser",
+    "buildCommand": "cd hangout-hub-client && npm install && npm run build:vercel",
+    "outputDirectory": "hangout-hub-client/dist/hangout-hub/browser",
     "framework": null,
     "rewrites": [
         {
