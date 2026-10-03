@@ -24,7 +24,7 @@ export const DEMO_USERS = [
     message:
       'Hey Hasebul, the chat is fast. How many people can it handle at once?',
     reply:
-      'Thanks! One server is fine for now, Redis keeps track of who is online so it can grow later.',
+      'Thanks! One small server handles it fine for now, it can grow later if it needs to.',
   },
   {
     key: 'mark',
@@ -66,7 +66,7 @@ export const SEED_POSTS = [
     author: 'owner',
     hoursAgo: 110,
     content:
-      'Elasticsearch is not only for logs. The feed search here runs on it, and it copes with partial words and typos without any extra code on my side.',
+      'You do not always need a search engine. The feed search here is plain Postgres text matching, and for a few thousand posts it answers instantly.',
   },
   {
     key: 'reuse',
@@ -130,7 +130,7 @@ export const SEED_COMMENTS = [
     post: 'nest',
     author: 'owner',
     content:
-      'Yes. Postgres for accounts, Elasticsearch for posts and messages, Redis for who is online.',
+      'Yes, everything lives in Postgres. One database is plenty for an app this size.',
   },
   {
     post: 'tests',

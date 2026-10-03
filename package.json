@@ -4,6 +4,6 @@
   "description": "Runs the whole stack with Docker Compose",
   "scripts": {
     "start": "docker compose up --build",
-    "services": "docker compose up -d postgres redis elasticsearch"
+    "services": "docker compose up -d postgres"
   }
 }
