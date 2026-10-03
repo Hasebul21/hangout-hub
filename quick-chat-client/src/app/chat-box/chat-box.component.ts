@@ -3,7 +3,9 @@ import {
   AfterViewChecked, Component, ElementRef, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NzButtonModule } from 'ng-zorro-antd/button';
 import { NzIconModule } from 'ng-zorro-antd/icon';
+import { NzInputModule } from 'ng-zorro-antd/input';
 import { NzMessageService } from 'ng-zorro-antd/message';
 import { Subscription } from 'rxjs';
 import { Message } from '../models/message';
@@ -15,7 +17,7 @@ import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-chat-box',
-  imports: [CommonModule, FormsModule, NzIconModule],
+  imports: [CommonModule, FormsModule, NzIconModule, NzInputModule, NzButtonModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
@@ -31,6 +33,9 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
   content = '';
   sending = false;
   otherTyping = false;
+  searchOpen = false;
+  searchText = '';
+  searchResults: Message[] | null = null;
   avatarUrl = avatarUrl;
   useDefaultAvatar = useDefaultAvatar;
 
@@ -75,6 +80,7 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
       }
       this.otherTyping = false;
       this.content = '';
+      this.closeSearch();
       this.loadMessages();
     }
   }
@@ -144,6 +150,31 @@ export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterView
     } finally {
       this.sending = false;
     }
+  }
+
+  toggleSearch() {
+    if (this.searchOpen) {
+      this.closeSearch();
+    } else {
+      this.searchOpen = true;
+    }
+  }
+
+  search() {
+    const text = this.searchText.trim();
+    if (!text) {
+      this.searchResults = null;
+      return;
+    }
+    this.chatService.search(this.selectedUser.id, text).subscribe(results => {
+      this.searchResults = results;
+    });
+  }
+
+  closeSearch() {
+    this.searchOpen = false;
+    this.searchText = '';
+    this.searchResults = null;
   }
 
   isMine(message: Message): boolean {
