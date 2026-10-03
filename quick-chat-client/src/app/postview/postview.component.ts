@@ -16,7 +16,7 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { RouterModule } from '@angular/router';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
-import { AuthService } from '../service/auth-service';
+import { AuthService } from '../service/auth.service';
 import { NavbarComponent } from "../navbar/navbar.component";
 import { ToastrService } from 'ngx-toastr';
 import { MatDialog } from '@angular/material/dialog';
@@ -84,7 +84,7 @@ export class PostviewComponent {
   ) { }
 
   ngOnInit(): void {
-    this.loggedInUser = this.authService.getLoggedInUser();
+    this.loggedInUser = this.authService.currentUser;
     this.loadPosts();
   }
 

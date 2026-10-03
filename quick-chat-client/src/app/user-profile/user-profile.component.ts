@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { AuthService } from '../service/auth-service';
+import { AuthService } from '../service/auth.service';
+import { UserService } from '../service/user.service';
 import { ToastrService } from 'ngx-toastr';
 import { Router } from '@angular/router';
 import { NavbarComponent } from "../navbar/navbar.component";
@@ -27,12 +28,13 @@ export class UserProfileComponent {
   loggedInUser: any = null;
 
   constructor(private authService: AuthService,
+    private userService: UserService,
     private toastr: ToastrService,
     private router: Router
   ) { }
 
   ngOnInit() {
-    this.loggedInUser = this.authService.getLoggedInUser();
+    this.loggedInUser = this.authService.currentUser;
   }
 
   updateProfile() {
@@ -52,10 +54,9 @@ export class UserProfileComponent {
     for (let [key, val] of formData.entries()) {
     }
 
-    this.authService.updateUserProfile(this.loggedInUser.id, formData).subscribe({
+    this.userService.updateProfile(formData).subscribe({
       next: (response) => {
-        response.profileImage = `data:image/jpeg;base64,${response.profileImage}`;
-        this.authService.setLoggedInUser(response);
+        this.authService.setCurrentUser(response);
         this.toastr.success('Profile updated successfully!', 'Success');
         this.router.navigate(['/home']);
       },

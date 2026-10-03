@@ -8,7 +8,7 @@ import { sockJsUrl } from '../ws.util';
 import { ChatService } from '../service/chat.service';
 import { forkJoin, map } from 'rxjs';
 import { StompService } from '../service/stomp.service';
-import { AuthService } from '../service/auth-service';
+import { AuthService } from '../service/auth.service';
 
 @Component({
   selector: 'app-chat-box',
@@ -36,7 +36,7 @@ export class ChatBoxComponent implements OnChanges, OnInit {
     if (this.selectedUser && !this.isSubscribed) {
       this.connectSocket();
     }
-    const loggedInUser = this.auth.getLoggedInUser();
+    const loggedInUser = this.auth.currentUser;
     forkJoin([
       this.chatService.getAllChats(this.loginUser.id, this.selectedUser.id),
       this.chatService.getAllChats(this.selectedUser.id, this.loginUser.id)

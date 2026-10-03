@@ -10,7 +10,7 @@ import SockJS from 'sockjs-client';
 import { Stomp } from '@stomp/stompjs';
 import { sockJsUrl } from '../ws.util';
 import { StompService } from '../service/stomp.service';
-import { AuthService } from '../service/auth-service';
+import { AuthService } from '../service/auth.service';
 import { NavbarComponent } from "../navbar/navbar.component";
 import { MatIconModule } from '@angular/material/icon';
 import { DEFAULT_USERS } from '../mock-data';
@@ -39,7 +39,7 @@ export class ChatRoomComponent implements OnChanges, OnInit {
   }
 
   ngOnInit(): void {
-    this.loginUser = this.authService.getLoggedInUser();
+    this.loginUser = this.authService.currentUser;
     this.connectSocket();
   }
 

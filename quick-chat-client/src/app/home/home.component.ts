@@ -12,7 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { AuthService } from '../service/auth-service';
+import { AuthService } from '../service/auth.service';
 import { PostService } from '../service/post.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NavbarComponent } from "../navbar/navbar.component";
@@ -67,7 +67,7 @@ export class HomeComponent implements OnInit, AfterViewInit {
 
 
   ngOnInit(): void {
-    this.loggedInUser = this.authService.getLoggedInUser();
+    this.loggedInUser = this.authService.currentUser;
   }
 
   postPublicly() {
