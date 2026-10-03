@@ -1,10 +1,5 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { Redis } from 'ioredis';
-import { REDIS } from '../redis/redis.module.js';
+import { Injectable } from '@nestjs/common';
 import { UsersService } from '../users/users.service.js';
-
-const CONNECTIONS_KEY = 'presence:connections';
-const LAST_SEEN_KEY = 'presence:last-seen';
 
 export interface Presence {
   onlineUserIds: number[];
@@ -13,43 +8,39 @@ export interface Presence {
 
 // Keeps track of who is online. A user can have more than one tab open, so we
 // count connections per user and only mark them offline when the last one goes.
+// Kept in memory, which is fine while the app runs as a single server.
 @Injectable()
-export class PresenceService implements OnModuleInit {
-  constructor(
-    @Inject(REDIS) private readonly redis: Redis,
-    private readonly usersService: UsersService,
-  ) {}
+export class PresenceService {
+  private connections = new Map<number, number>();
+  private lastSeen = new Map<number, string>();
 
-  async onModuleInit() {
-    // sockets don't survive a restart, so old counts are meaningless
-    await this.redis.del(CONNECTIONS_KEY);
+  constructor(private readonly usersService: UsersService) {}
+
+  userConnected(userId: number) {
+    this.connections.set(userId, (this.connections.get(userId) ?? 0) + 1);
   }
 
-  async userConnected(userId: number) {
-    await this.redis.hincrby(CONNECTIONS_KEY, String(userId), 1);
-  }
-
-  async userDisconnected(userId: number) {
-    const count = await this.redis.hincrby(CONNECTIONS_KEY, String(userId), -1);
-    if (count <= 0) {
-      await this.redis.hdel(CONNECTIONS_KEY, String(userId));
-      await this.redis.hset(
-        LAST_SEEN_KEY,
-        String(userId),
-        new Date().toISOString(),
-      );
+  userDisconnected(userId: number) {
+    const count = (this.connections.get(userId) ?? 1) - 1;
+    if (count > 0) {
+      this.connections.set(userId, count);
+      return;
     }
+    this.connections.delete(userId);
+    this.lastSeen.set(userId, new Date().toISOString());
   }
 
   async getPresence(): Promise<Presence> {
-    const ids = (await this.redis.hkeys(CONNECTIONS_KEY)).map(Number);
-    const lastSeen = await this.redis.hgetall(LAST_SEEN_KEY);
+    const ids = [...this.connections.keys()];
 
     // the owner always shows as available
     const owner = await this.usersService.findOwner();
     if (owner && !ids.includes(owner.id)) {
       ids.push(owner.id);
     }
-    return { onlineUserIds: ids, lastSeen };
+    return {
+      onlineUserIds: ids,
+      lastSeen: Object.fromEntries(this.lastSeen),
+    };
   }
 }
