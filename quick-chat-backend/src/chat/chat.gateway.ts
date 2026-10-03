@@ -1,13 +1,17 @@
 import { Logger } from '@nestjs/common';
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { AuthService } from '../auth/auth.service.js';
 import { allowedOrigins } from '../cors.js';
+import { MessagesService } from './messages.service.js';
 import { PresenceService } from './presence.service.js';
 
 export function userRoom(userId: number) {
@@ -24,6 +28,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly authService: AuthService,
     private readonly presenceService: PresenceService,
+    private readonly messagesService: MessagesService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -56,6 +61,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.presenceService.userDisconnected(client.data.userId);
     this.logger.log(`User ${client.data.userId} disconnected (${client.id})`);
     await this.broadcastPresence();
+  }
+
+  @SubscribeMessage('send-message')
+  async sendMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { receiverId: number; content: string },
+  ) {
+    const senderId = client.data.userId;
+    if (!senderId) {
+      return { error: 'Not connected' };
+    }
+
+    try {
+      const message = await this.messagesService.send(
+        senderId,
+        Number(body?.receiverId),
+        body?.content,
+      );
+      // the receiver, and the sender's other tabs
+      client
+        .to(userRoom(message.receiverId))
+        .to(userRoom(senderId))
+        .emit('message', message);
+      return message;
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Could not send' };
+    }
   }
 
   private async broadcastPresence() {
