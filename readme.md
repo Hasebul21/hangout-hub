@@ -83,5 +83,5 @@ The client reads the API url from `src/environments/environment.ts` (and `enviro
 
 ## Deployment
 
-- Backend: any Node host or Docker (`hangout-hub-backend/Dockerfile`).
+- Backend: Render, using `render.yaml` (Docker, free plan). Set `DATABASE_URL` and `OWNER_PASSWORD` when creating it.
 - Client: Vercel, using the root `vercel.json`.
