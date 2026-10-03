@@ -9,8 +9,9 @@ import { NavbarComponent } from '../navbar/navbar.component';
 import { AuthService } from '../service/auth.service';
 import { UserService } from '../service/user.service';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
+import { resizeImage } from '../shared/resize-image';
 
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 
 @Component({
   selector: 'app-user-profile',
@@ -65,7 +66,7 @@ export class UserProfileComponent implements OnInit, OnDestroy {
       return;
     }
     if (file.size > MAX_IMAGE_SIZE) {
-      this.msg.warning('Image is too big, the limit is 5 MB');
+      this.msg.warning('Image is too big, the limit is 10 MB');
       return;
     }
     if (this.avatarFile) {
@@ -75,16 +76,23 @@ export class UserProfileComponent implements OnInit, OnDestroy {
     this.avatarPreview = URL.createObjectURL(file);
   }
 
-  updateProfile() {
+  async updateProfile() {
     const formData = new FormData();
     for (const [key, value] of Object.entries(this.form)) {
       formData.append(key, value ?? '');
     }
-    if (this.avatarFile) {
-      formData.append('avatar', this.avatarFile);
-    }
 
     this.saving = true;
+    if (this.avatarFile) {
+      try {
+        formData.append('avatar', await resizeImage(this.avatarFile), 'avatar.jpg');
+      } catch {
+        this.saving = false;
+        this.msg.error('Could not read that image, try another one');
+        return;
+      }
+    }
+
     this.userService.updateProfile(formData).subscribe({
       next: user => {
         this.saving = false;
