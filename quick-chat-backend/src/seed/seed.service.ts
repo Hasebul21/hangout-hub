@@ -8,10 +8,15 @@ import { conversationId } from '../chat/messages.service.js';
 import { ElasticService } from '../elastic/elastic.service.js';
 import { Post, POSTS_INDEX, postMappings } from '../posts/post.js';
 import { User } from '../users/user.entity.js';
-import { DEMO_USERS } from './demo-users.js';
-import { OWNER, OWNER_POSTS } from './owner.js';
+import {
+  DEMO_USERS,
+  OWNER,
+  SEED_COMMENTS,
+  SEED_LIKES,
+  SEED_POSTS,
+} from './seed-data.js';
 
-const DAY = 24 * 60 * 60 * 1000;
+const HOUR = 60 * 60 * 1000;
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
@@ -25,8 +30,26 @@ export class SeedService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     const owner = await this.seedOwner();
-    await this.seedOwnerPosts(owner);
-    await this.seedDemoUsers(owner);
+
+    // everything else is only created once, on an empty database
+    const alreadySeeded = await this.users.findOneBy({
+      email: DEMO_USERS[0].email,
+    });
+    if (alreadySeeded) {
+      return;
+    }
+
+    const people = new Map<string, User>([[OWNER.key, owner]]);
+    for (const demo of DEMO_USERS) {
+      people.set(demo.key, await this.createDemoUser(demo));
+    }
+
+    const posts = await this.seedPosts(people);
+    await this.seedComments(people, posts);
+    await this.seedChats(owner, people);
+    this.logger.log(
+      `Seeded ${DEMO_USERS.length} demo users, ${SEED_POSTS.length} posts and ${SEED_COMMENTS.length} comments`,
+    );
   }
 
   private async seedOwner() {
@@ -41,147 +64,133 @@ export class SeedService implements OnApplicationBootstrap {
 
     const password =
       this.config.get<string>('OWNER_PASSWORD') || OWNER.defaultPassword;
-    const owner = this.users.create({
-      userName: OWNER.userName,
-      email: OWNER.email,
-      password: await bcrypt.hash(password, 10),
-      professionalTitle: OWNER.professionalTitle,
-      portfolio: OWNER.portfolio,
-      skills: OWNER.skills,
-      bio: OWNER.bio,
-      isOwner: true,
-    });
-    await this.users.save(owner);
+    const owner = await this.users.save(
+      this.users.create({
+        userName: OWNER.userName,
+        email: OWNER.email,
+        password: await bcrypt.hash(password, 10),
+        professionalTitle: OWNER.professionalTitle,
+        portfolio: OWNER.portfolio,
+        skills: OWNER.skills,
+        bio: OWNER.bio,
+        isOwner: true,
+      }),
+    );
     this.logger.log(`Created owner account ${OWNER.email}`);
     return owner;
   }
 
-  private async seedOwnerPosts(owner: User) {
-    await this.elastic.createIndexIfMissing(POSTS_INDEX, postMappings);
-    const data = await this.elastic.request('POST', `/${POSTS_INDEX}/_count`, {
-      query: { term: { authorId: owner.id } },
-    });
-    if (data.count > 0) {
-      return;
-    }
+  private async createDemoUser(demo: (typeof DEMO_USERS)[number]) {
+    return this.users.save(
+      this.users.create({
+        userName: demo.userName,
+        email: demo.email,
+        // nobody knows this password, so the account can't be used to log in
+        password: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
+        professionalTitle: 'Demo account',
+        bio: demo.bio,
+        isDemo: true,
+      }),
+    );
+  }
 
-    for (const item of OWNER_POSTS) {
-      const date = new Date(Date.now() - item.daysAgo * 24 * 60 * 60 * 1000);
+  private async seedPosts(people: Map<string, User>) {
+    await this.elastic.createIndexIfMissing(POSTS_INDEX, postMappings);
+
+    const posts = new Map<string, Post>();
+    for (const item of SEED_POSTS) {
+      const author = people.get(item.author)!;
+      const likedBy = (SEED_LIKES[item.key] ?? []).map(
+        (key) => people.get(key)!.id,
+      );
+      const date = new Date(Date.now() - item.hoursAgo * HOUR).toISOString();
+      const commentCount = SEED_COMMENTS.filter(
+        (c) => c.post === item.key,
+      ).length;
+
       const post: Post = {
         id: randomUUID(),
-        authorId: owner.id,
-        authorName: owner.userName,
+        authorId: author.id,
+        authorName: author.userName,
         content: item.content,
-        likeCount: 0,
+        likeCount: likedBy.length,
         dislikeCount: 0,
-        likedBy: [],
+        likedBy,
         dislikedBy: [],
-        commentCount: 0,
-        createdAt: date.toISOString(),
-        updatedAt: date.toISOString(),
+        commentCount,
+        createdAt: date,
+        updatedAt: date,
       };
-      await this.elastic.request(
-        'PUT',
-        `/${POSTS_INDEX}/_doc/${post.id}?refresh=true`,
-        post,
-      );
+      await this.put(POSTS_INDEX, post.id, post);
+      posts.set(item.key, post);
     }
-    this.logger.log(`Added ${OWNER_POSTS.length} posts for the owner`);
+    return posts;
   }
 
-  private async seedDemoUsers(owner: User) {
-    const alreadySeeded = await this.users.findOneBy({
-      email: DEMO_USERS[0].email,
-    });
-    if (alreadySeeded) {
-      return;
-    }
-
-    const demoUsers: User[] = [];
-    for (const [index, data] of DEMO_USERS.entries()) {
-      const user = await this.users.save(
-        this.users.create({
-          userName: data.userName,
-          email: data.email,
-          // nobody knows this password, so the account can't be used to log in
-          password: await bcrypt.hash(randomBytes(24).toString('hex'), 10),
-          professionalTitle: 'Demo account',
-          bio: data.bio,
-          isDemo: true,
-        }),
+  private async seedComments(
+    people: Map<string, User>,
+    posts: Map<string, Post>,
+  ) {
+    for (const [index, item] of SEED_COMMENTS.entries()) {
+      const post = posts.get(item.post)!;
+      const author = people.get(item.author)!;
+      // a little while after the post, in order
+      const date = new Date(
+        new Date(post.createdAt).getTime() + (index + 1) * 20 * 60 * 1000,
       );
-      demoUsers.push(user);
+      const id = randomUUID();
+      await this.put('quickchat_comments', id, {
+        id,
+        postId: post.id,
+        authorId: author.id,
+        authorName: author.userName,
+        content: item.content,
+        createdAt: date.toISOString(),
+      });
+    }
+  }
 
-      const postDate = new Date(Date.now() - (index + 1) * DAY * 0.7);
-      await this.savePost(user, data.post, postDate);
-
-      const messageDate = new Date(Date.now() - (index + 1) * 60 * 60 * 1000);
-      await this.saveMessage(user.id, owner.id, data.message, messageDate);
-      if (data.reply) {
-        const replyDate = new Date(messageDate.getTime() + 5 * 60 * 1000);
-        await this.saveMessage(owner.id, user.id, data.reply, replyDate, true);
+  private async seedChats(owner: User, people: Map<string, User>) {
+    for (const [index, demo] of DEMO_USERS.entries()) {
+      const user = people.get(demo.key)!;
+      const sentAt = Date.now() - (index + 1) * 3 * HOUR;
+      await this.saveMessage(user.id, owner.id, demo.message, sentAt, false);
+      if (demo.reply) {
+        await this.saveMessage(
+          owner.id,
+          user.id,
+          demo.reply,
+          sentAt + 10 * 60 * 1000,
+          true,
+        );
       }
     }
-
-    // a few likes on the owner's posts so trending isn't empty
-    const ownerPosts = await this.elastic.search<Post>(POSTS_INDEX, {
-      query: { term: { authorId: owner.id } },
-      size: 10,
-    });
-    for (const [index, post] of ownerPosts.items.entries()) {
-      const likedBy = demoUsers
-        .slice(0, demoUsers.length - index)
-        .map((u) => u.id);
-      await this.elastic.request(
-        'POST',
-        `/${POSTS_INDEX}/_update/${post.id}?refresh=true`,
-        { doc: { likedBy, likeCount: likedBy.length } },
-      );
-    }
-    this.logger.log(`Added ${demoUsers.length} demo users`);
-  }
-
-  private async savePost(author: User, content: string, date: Date) {
-    const post: Post = {
-      id: randomUUID(),
-      authorId: author.id,
-      authorName: author.userName,
-      content,
-      likeCount: 0,
-      dislikeCount: 0,
-      likedBy: [],
-      dislikedBy: [],
-      commentCount: 0,
-      createdAt: date.toISOString(),
-      updatedAt: date.toISOString(),
-    };
-    await this.elastic.request(
-      'PUT',
-      `/${POSTS_INDEX}/_doc/${post.id}?refresh=true`,
-      post,
-    );
   }
 
   private async saveMessage(
     senderId: number,
     receiverId: number,
     content: string,
-    date: Date,
-    read = false,
+    sentAt: number,
+    read: boolean,
   ) {
     const id = randomUUID();
-    await this.elastic.request(
+    await this.put('quickchat_messages', id, {
+      id,
+      conversationId: conversationId(senderId, receiverId),
+      senderId,
+      receiverId,
+      content,
+      read,
+      createdAt: new Date(sentAt).toISOString(),
+    });
+  }
+
+  private put(index: string, id: string, doc: object) {
+    return this.elastic.request(
       'PUT',
-      `/quickchat_messages/_doc/${id}?refresh=true`,
-      {
-        id,
-        conversationId: conversationId(senderId, receiverId),
-        senderId,
-        receiverId,
-        content,
-        read,
-        createdAt: date.toISOString(),
-      },
+      `/${index}/_doc/${id}?refresh=true`,
+      doc,
     );
   }
 }

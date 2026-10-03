@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
 import sharp from 'sharp';
 import { Repository } from 'typeorm';
-import { OWNER } from '../seed/owner.js';
+import { OWNER } from '../seed/seed-data.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { User } from './user.entity.js';
 
