@@ -433,4 +433,60 @@ describe('Hangout Hub API (e2e)', () => {
       expect(other.body.length).toBe(0);
     });
   });
+  describe('guests', () => {
+    let guestToken = '';
+
+    it('logs in as a guest without creating an account', async () => {
+      const before = await http().get('/users').set(auth(alice.token));
+      const res = await http().post('/auth/guest').expect(200);
+      guestToken = res.body.accessToken;
+      expect(res.body.user.isGuest).toBe(true);
+
+      const after = await http().get('/users').set(auth(alice.token));
+      expect(after.body.length).toBe(before.body.length);
+    });
+
+    it('can read posts and comments', async () => {
+      await http().get('/posts').set(auth(guestToken)).expect(200);
+      await http().get('/posts/trending').set(auth(guestToken)).expect(200);
+      const me = await http().get('/auth/me').set(auth(guestToken)).expect(200);
+      expect(me.body.isGuest).toBe(true);
+    });
+
+    it('cannot post, react, comment or read messages', async () => {
+      const posts = await http().get('/posts').set(auth(guestToken));
+      const postId = posts.body.items[0].id;
+
+      await http()
+        .post('/posts')
+        .set(auth(guestToken))
+        .send({ content: 'hi' })
+        .expect(403);
+      await http()
+        .post(`/posts/${postId}/reaction`)
+        .set(auth(guestToken))
+        .send({ type: 'like' })
+        .expect(403);
+      await http()
+        .post(`/posts/${postId}/comments`)
+        .set(auth(guestToken))
+        .send({ content: 'hi' })
+        .expect(403);
+      await http().get('/messages/unread').set(auth(guestToken)).expect(403);
+      await http()
+        .put('/users/me')
+        .set(auth(guestToken))
+        .field('bio', 'x')
+        .expect(403);
+    });
+
+    it('cannot send chat messages', async () => {
+      const socket = await connect(guestToken);
+      const result = await socket.emitWithAck('send-message', {
+        receiverId: alice.id,
+        content: 'hi',
+      });
+      expect(result.error).toBeTruthy();
+    });
+  });
 });

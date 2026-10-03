@@ -41,8 +41,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const payload = await this.authService.verifyToken(token);
       client.data.userId = payload.sub;
+      client.data.guest = payload.guest === true;
     } catch {
       client.disconnect();
+      return;
+    }
+
+    if (client.data.guest) {
+      client.emit('presence', await this.presenceService.getPresence());
       return;
     }
 
@@ -74,6 +80,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @MessageBody() body: { receiverId: number; content: string },
   ) {
     const senderId = client.data.userId;
+    if (client.data.guest) {
+      return { error: 'Create an account to chat' };
+    }
     if (!senderId) {
       return { error: 'Not connected' };
     }
@@ -102,7 +111,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const userId = client.data.userId;
     const receiverId = Number(body?.receiverId);
-    if (!userId || !receiverId) {
+    if (client.data.guest || !userId || !receiverId) {
       return;
     }
     this.sendToUser(receiverId, 'typing', {

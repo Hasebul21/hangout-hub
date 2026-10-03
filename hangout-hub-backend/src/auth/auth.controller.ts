@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { UsersService } from '../users/users.service.js';
-import { AuthService } from './auth.service.js';
+import { AuthService, GUEST_USER } from './auth.service.js';
 import { CurrentUserId } from './current-user-id.decorator.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
@@ -39,13 +39,19 @@ export class AuthController {
 
   @Post('guest')
   @HttpCode(200)
-  guest(@Req() req: Request) {
-    return this.authService.loginAsGuest(req.ip ?? 'unknown');
+  guest() {
+    return this.authService.loginAsGuest();
   }
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  me(@CurrentUserId() userId: number) {
+  me(
+    @CurrentUserId() userId: number,
+    @Req() req: Request & { isGuest?: boolean },
+  ) {
+    if (req.isGuest) {
+      return GUEST_USER;
+    }
     return this.usersService.findById(userId);
   }
 }

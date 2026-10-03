@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { MembersOnlyGuard } from '../auth/members-only.guard.js';
 import { CommentsService } from './comments.service.js';
 import { PostContentDto } from './dto/post-content.dto.js';
 
@@ -25,6 +26,7 @@ export class CommentsController {
   }
 
   @Post()
+  @UseGuards(MembersOnlyGuard)
   add(
     @Param('postId', ParseUUIDPipe) postId: string,
     @CurrentUserId() userId: number,
@@ -34,6 +36,7 @@ export class CommentsController {
   }
 
   @Delete(':commentId')
+  @UseGuards(MembersOnlyGuard)
   @HttpCode(204)
   remove(
     @Param('postId', ParseUUIDPipe) postId: string,

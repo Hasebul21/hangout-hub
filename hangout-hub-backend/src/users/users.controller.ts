@@ -14,6 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { MembersOnlyGuard } from '../auth/members-only.guard.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { User } from './user.entity.js';
 import { UsersService } from './users.service.js';
@@ -40,7 +41,7 @@ export class UsersController {
   }
 
   @Put('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, MembersOnlyGuard)
   @UseInterceptors(
     FileInterceptor('avatar', { limits: { fileSize: 2 * 1024 * 1024 } }),
   )
