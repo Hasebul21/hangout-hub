@@ -1,11 +1,10 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
-import { UserService } from '../service/user.service';
 import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SocketService } from '../service/socket.service';
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-import { DEFAULT_AVATAR } from '../mock-data';
+import { Presence } from '../models/message';
+import { User } from '../models/user';
+import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
+import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-user-status',
@@ -13,47 +12,33 @@ import { DEFAULT_AVATAR } from '../mock-data';
   templateUrl: './user-status.component.html',
   styleUrl: './user-status.component.scss',
 })
-export class UserStatusComponent implements OnChanges {
-  @Input() loginUser: any;
-  @Input() activeUsers: any[] = [];
-  @Output() selectedUserEvent: EventEmitter<any> = new EventEmitter<any>();
+export class UserStatusComponent {
+  @Input() me: User | null = null;
+  @Input() users: User[] = [];
+  @Input() presence: Presence = { onlineUserIds: [], lastSeen: {} };
+  @Input() selectedUser: User | null = null;
+  @Output() selectUser = new EventEmitter<User>();
 
-  selectedUser: any = null;
-  searchTerm: string = '';
+  searchTerm = '';
+  avatarUrl = avatarUrl;
+  useDefaultAvatar = useDefaultAvatar;
 
-  private stompClient: any | undefined;
-
-  constructor(
-    private userService: UserService,
-    private sockeService: SocketService
-  ) { }
-
-  get filteredUsers(): any[] {
+  get filteredUsers(): User[] {
     const term = this.searchTerm.toLowerCase().trim();
-    return this.activeUsers.filter(u =>
-      u.userEmail !== this.loginUser?.userEmail &&
-      (!term || u.userName?.toLowerCase().includes(term))
-    );
+    return this.users
+      .filter(user => !term || user.userName.toLowerCase().includes(term))
+      .sort((a, b) => Number(this.isOnline(b)) - Number(this.isOnline(a)));
   }
 
-  ngOnChanges(changes: SimpleChanges): void { }
-
-  selectUser(user: any) {
-    this.selectedUser = user;
-    this.selectedUserEvent.emit(user);
+  isOnline(user: User): boolean {
+    return this.presence.onlineUserIds.includes(user.id);
   }
 
-  getProfileImageSrc(user: any): string {
-    if (!user?.profileImage) {
-      return DEFAULT_AVATAR;
+  statusText(user: User): string {
+    if (this.isOnline(user)) {
+      return 'Online';
     }
-    if (user.profileImage.startsWith('http') || user.profileImage.startsWith('data:')) {
-      return user.profileImage;
-    }
-    return `data:image/jpeg;base64,${user.profileImage}`;
-  }
-
-  onImgError(event: Event): void {
-    (event.target as HTMLImageElement).src = DEFAULT_AVATAR;
+    const lastSeen = this.presence.lastSeen[user.id];
+    return lastSeen ? `Last seen ${timeAgo(lastSeen)}` : 'Offline';
   }
 }

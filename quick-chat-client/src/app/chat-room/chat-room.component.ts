@@ -1,85 +1,62 @@
-import { ChangeDetectorRef, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
-import { UserStatusComponent } from '../user-status/user-status.component';
-import { ChatBoxComponent } from '../chat-box/chat-box.component';
-import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { UserLoginComponent } from '../user-login/user-login.component';
-import { RouterModule } from '@angular/router';
-import { HomeComponent } from '../home/home.component';
-import SockJS from 'sockjs-client';
-import { Stomp } from '@stomp/stompjs';
-import { sockJsUrl } from '../ws.util';
-import { StompService } from '../service/stomp.service';
-import { AuthService } from '../service/auth.service';
-import { NavbarComponent } from "../navbar/navbar.component";
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
-import { DEFAULT_USERS } from '../mock-data';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { ChatBoxComponent } from '../chat-box/chat-box.component';
+import { Presence } from '../models/message';
+import { User } from '../models/user';
+import { NavbarComponent } from '../navbar/navbar.component';
+import { AuthService } from '../service/auth.service';
+import { SocketService } from '../service/socket.service';
+import { UserService } from '../service/user.service';
+import { UserStatusComponent } from '../user-status/user-status.component';
 
 @Component({
   selector: 'app-chat-room',
-  standalone: true,
-  imports: [UserStatusComponent, ChatBoxComponent, FormsModule, CommonModule, RouterModule, NavbarComponent, MatIconModule],
+  imports: [CommonModule, MatIconModule, NavbarComponent, UserStatusComponent, ChatBoxComponent],
   templateUrl: './chat-room.component.html',
   styleUrl: './chat-room.component.scss'
 })
-export class ChatRoomComponent implements OnChanges, OnInit {
-  private stompClient: any | undefined;
-  isSelected = false;
-  userName: string | undefined;
-  userEmail: string | undefined;
-  activeUsers: any[] = [...DEFAULT_USERS];
-  loginUser: any | undefined;
-  @Input() selectedUser: any;
-  login = false;
-  isConnected = false;
+export class ChatRoomComponent implements OnInit, OnDestroy {
+  me: User | null = null;
+  users: User[] = [];
+  selectedUser: User | null = null;
+  presence: Presence = { onlineUserIds: [], lastSeen: {} };
+  private subscription?: Subscription;
 
-  constructor(private cdr: ChangeDetectorRef,
-    private stompService: StompService, private authService: AuthService) {
-
-  }
+  constructor(private auth: AuthService,
+    private userService: UserService,
+    private socket: SocketService,
+    private route: ActivatedRoute) { }
 
   ngOnInit(): void {
-    this.loginUser = this.authService.currentUser;
-    this.connectSocket();
-  }
+    this.me = this.auth.currentUser;
 
-  ngOnChanges(changes: SimpleChanges): void {
-  }
-
-  connectSocket() {
-    if (this.stompClient && this.stompClient.connected) {
-      return;
-    }
-    const socket = new SockJS(sockJsUrl());
-    this.stompClient = Stomp.over(socket);
-
-    this.stompClient.connect({}, () => {
-      this.isSelected = true;
-      this.isConnected = true;
-      this.stompClient.subscribe(`/topic/public/activeUsers`, response => {
-        console.log(response);
-        const realUsers: any[] = JSON.parse(response.body);
-        // Merge real users with defaults (always keep defaults visible)
-        const merged = [...realUsers];
-        for (const defaultUser of DEFAULT_USERS) {
-          if (!merged.find(u => u.id === defaultUser.id)) {
-            merged.push(defaultUser);
-          }
-        }
-        this.activeUsers = merged;
-      });
-
-      this.stompClient.send('/app/chat/join', {}, JSON.stringify({
-        id: this.loginUser.id,
-        userName: this.loginUser.userName,
-        userEmail: this.loginUser.userEmail
-      }));
-    }, (error) => {
-      console.log(error);
+    this.subscription = this.socket.on<Presence>('presence').subscribe(presence => {
+      this.presence = presence;
     });
-  };
 
-  onUserChangeEvent(user: any) {
+    this.userService.getUsers().subscribe(users => {
+      this.users = users.filter(user => user.id !== this.me?.id);
+
+      // opened from "chat" buttons elsewhere, e.g. /chatroom?user=3
+      const userId = Number(this.route.snapshot.queryParamMap.get('user'));
+      if (userId) {
+        this.selectedUser = this.users.find(user => user.id === userId) ?? null;
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.subscription?.unsubscribe();
+  }
+
+  onSelectUser(user: User) {
     this.selectedUser = user;
+  }
+
+  isOnline(user: User): boolean {
+    return this.presence.onlineUserIds.includes(user.id);
   }
 }

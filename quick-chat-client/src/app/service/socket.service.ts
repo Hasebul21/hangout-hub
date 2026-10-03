@@ -1,82 +1,49 @@
 import { Injectable } from '@angular/core';
-import { Stomp } from '@stomp/stompjs';
-import { Observable } from 'rxjs';
-import SockJS from 'sockjs-client';
-import { sockJsUrl } from '../ws.util';
+import { Observable, Subject, filter, map } from 'rxjs';
+import { io, Socket } from 'socket.io-client';
+import { environment } from '../../environments/environment';
+
+interface SocketEvent {
+  name: string;
+  data: any;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class SocketService {
+  private socket: Socket | null = null;
+  private events$ = new Subject<SocketEvent>();
 
-  private url = sockJsUrl();
-  private stompClient: any | undefined;
-  isConnected = false;
-
-  constructor() { }
-
-  onConnect(): Observable<boolean> {
-    return new Observable<boolean>((observer) => {
-      if (this.isConnected) {
-        observer.next(true);
-        observer.complete();
-        return;
-      }
-      const socket = new SockJS(this.url);
-      this.stompClient = Stomp.over(socket);
-      this.stompClient.connect({}, () => {
-        this.isConnected = true;
-        observer.next(true);
-        observer.complete();
-      }, (error) => {
-        observer.error(error);
-      });
-    });
-  }
-
-  subscribeToActiveUser(): Observable<any> {
-    return new Observable(observer => {
-      if (!this.stompClient || !this.isConnected) {
-        observer.error("WebSocket not connected");
-        return;
-      }
-      this.stompClient.subscribe('/topic/public/activeUsers', response => {
-        const message = JSON.parse(response.body);
-        observer.next(message);
-      });
-    });
-  }
-
-  subscribeTo(): Observable<any> {
-    return new Observable(observer => {
-      if (!this.stompClient || !this.isConnected) {
-        observer.error("WebSocket not connected");
-        return;
-      }
-
-      this.stompClient.subscribe(`/topic/public`, response => {
-        const message = JSON.parse(response.body);
-        observer.next(message);
-      });
-    });
-  }
-
-  sendMessageToNewUser(userName: string, userEmail: string) {
-    if (!this.stompClient || !this.isConnected) {
+  connect(token: string) {
+    if (this.socket) {
       return;
     }
-    this.stompClient.send('/app/addUser', {}, JSON.stringify(
-      {
-        senderName: userName,
-        status: 'SENT'
-      }
-    ))
+    this.socket = io(environment.apiBaseUrl, { auth: { token } });
+    this.socket.onAny((name, data) => this.events$.next({ name, data }));
   }
 
-  sendMessageToActiveUser() {
-    if (!this.stompClient || !this.isConnected) {
-      return;
+  disconnect() {
+    this.socket?.disconnect();
+    this.socket = null;
+  }
+
+  // works even if a component subscribes before the socket is connected
+  on<T>(name: string): Observable<T> {
+    return this.events$.pipe(
+      filter(event => event.name === name),
+      map(event => event.data as T)
+    );
+  }
+
+  emit(name: string, data: unknown) {
+    this.socket?.emit(name, data);
+  }
+
+  async request<T>(name: string, data: unknown): Promise<T> {
+    if (!this.socket) {
+      throw new Error('Not connected');
     }
-    this.stompClient.send('/app/getAllUser', {}, null)
+    return this.socket.timeout(5000).emitWithAck(name, data);
   }
 }

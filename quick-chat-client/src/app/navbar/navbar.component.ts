@@ -8,6 +8,7 @@ import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { User } from '../models/user';
 import { AuthService } from '../service/auth.service';
+import { SocketService } from '../service/socket.service';
 import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
 
 @Component({
@@ -23,6 +24,7 @@ export class NavbarComponent implements OnInit {
   useDefaultAvatar = useDefaultAvatar;
 
   constructor(private auth: AuthService,
+    private socket: SocketService,
     private toastr: ToastrService,
     private router: Router) { }
 
@@ -32,6 +34,7 @@ export class NavbarComponent implements OnInit {
   }
 
   logout() {
+    this.socket.disconnect();
     this.auth.logout();
     this.loggedInUser = null;
     this.toastr.success('You have been logged out');

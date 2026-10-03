@@ -1,38 +1,32 @@
 <div class="contacts-panel">
-  <!-- Header -->
   <div class="panel-header">
     <div class="my-info">
-      <img class="my-avatar"
-        [src]="loginUser?.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + loginUser?.userName"
-        (error)="onImgError($event)" alt="me" />
+      <img class="my-avatar" [src]="avatarUrl(me?.id, me?.updatedAt)" (error)="useDefaultAvatar($event)" alt="me" />
       <div>
-        <div class="my-name">{{ loginUser?.userName }}</div>
+        <div class="my-name">{{ me?.userName }}</div>
         <div class="my-status"><span class="dot"></span> Online</div>
       </div>
     </div>
   </div>
 
-  <!-- Search -->
   <div class="search-wrap">
     <input class="search-input" placeholder="Search contacts..." [(ngModel)]="searchTerm" />
   </div>
 
-  <!-- Contact List -->
   <div class="contacts-list">
-    <div class="contact-item" *ngFor="let activeUser of filteredUsers" (click)="selectUser(activeUser)"
-      [class.active]="activeUser === selectedUser">
-      <div class="contact-avatar-wrap">
-        <img [src]="getProfileImageSrc(activeUser)" (error)="onImgError($event)" class="contact-avatar" alt="avatar" />
-        <span class="status-dot online"></span>
+    @for (user of filteredUsers; track user.id) {
+      <div class="contact-item" [class.active]="user.id === selectedUser?.id" (click)="selectUser.emit(user)">
+        <div class="contact-avatar-wrap">
+          <img [src]="avatarUrl(user.id)" (error)="useDefaultAvatar($event)" class="contact-avatar" alt="avatar" />
+          <span class="status-dot" [class.online]="isOnline(user)"></span>
+        </div>
+        <div class="contact-details">
+          <span class="contact-name">{{ user.userName }}</span>
+          <span class="contact-sub">{{ statusText(user) }}</span>
+        </div>
       </div>
-      <div class="contact-details">
-        <span class="contact-name">{{ activeUser.userName }}</span>
-        <span class="contact-sub">{{ activeUser.professionalTitle || 'Member' }}</span>
-      </div>
-    </div>
-
-    <div class="no-contacts" *ngIf="filteredUsers.length === 0">
-      No contacts found
-    </div>
+    } @empty {
+      <div class="no-contacts">No contacts found</div>
+    }
   </div>
 </div>

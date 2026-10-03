@@ -1,45 +1,38 @@
-<!-- Chat Header -->
 <div class="chat-header">
-  <img class="header-avatar" [src]="selectedUser?.profileImage
-      ? 'data:image/jpeg;base64,' + selectedUser.profileImage
-      : 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + selectedUser?.userName"
-    (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="avatar" />
+  <img class="header-avatar" [src]="avatarUrl(selectedUser.id)" (error)="useDefaultAvatar($event)" alt="avatar" />
   <div class="header-info">
     <span class="header-name">{{ selectedUser.userName }}</span>
-    <span class="header-status"><span class="online-dot"></span> Online</span>
+    <span class="header-status">
+      <span class="online-dot" [class.offline]="!online"></span> {{ statusText() }}
+    </span>
   </div>
 </div>
 
-<!-- Messages -->
-<div class="chat-messages chatContainerScroll">
-  <div *ngFor="let message of messages" class="msg-row" [class.msg-right]="message.direction === 'right'"
-    [class.msg-left]="message.direction === 'left'">
-    <img class="msg-avatar" [src]="message.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'"
-      (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="avatar" />
-    <div class="msg-body">
-      <div class="bubble">
-        <p class="bubble-text">{{ message.content }}</p>
-      </div>
-      <div class="msg-meta">
-        <span class="msg-time">{{ message.time }}</span>
-        <span class="msg-status" *ngIf="message.direction === 'right'">
-          <mat-icon class="check-icon">done_all</mat-icon>
-        </span>
+<div class="chat-messages" #messageList>
+  @for (message of messages; track message.id) {
+    <div class="msg-row" [class.msg-right]="isMine(message)" [class.msg-left]="!isMine(message)">
+      <img class="msg-avatar" [src]="avatarUrl(message.senderId)" (error)="useDefaultAvatar($event)" alt="avatar" />
+      <div class="msg-body">
+        <div class="bubble">
+          <p class="bubble-text">{{ message.content }}</p>
+        </div>
+        <div class="msg-meta">
+          <span class="msg-time">{{ message.createdAt | date: 'MMM d, h:mm a' }}</span>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Empty state -->
-  <div class="empty-chat" *ngIf="messages.length === 0">
-    <mat-icon>waving_hand</mat-icon>
-    <p>Say hello to {{ selectedUser.userName }}!</p>
-  </div>
+  } @empty {
+    <div class="empty-chat">
+      <mat-icon>waving_hand</mat-icon>
+      <p>Say hello to {{ selectedUser.userName }}!</p>
+    </div>
+  }
 </div>
 
-<!-- Input -->
 <div class="chat-input-bar">
-  <input class="chat-input" placeholder="Type a message..." [(ngModel)]="content" (keydown.enter)="onMessageSent()" />
-  <button class="send-btn" (click)="onMessageSent()" [disabled]="!content?.trim()">
+  <input class="chat-input" placeholder="Type a message..." maxlength="1000" [(ngModel)]="content"
+    (keydown.enter)="send()" />
+  <button class="send-btn" (click)="send()" [disabled]="!content.trim() || sending">
     <mat-icon>send</mat-icon>
   </button>
 </div>

@@ -17,7 +17,6 @@ import { PostService } from '../service/post.service';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { NavbarComponent } from "../navbar/navbar.component";
 import { TrendingPostComponent } from "../trending-post/trending-post.component";
-import { StompService } from '../service/stomp.service';
 import { ToastrService } from 'ngx-toastr';
 import { ProfileSectionComponent } from "../profile-section/profile-section.component";
 import { DEFAULT_USERS } from '../mock-data';
