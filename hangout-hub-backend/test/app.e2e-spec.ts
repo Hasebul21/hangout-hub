@@ -168,7 +168,8 @@ describe('Hangout Hub API (e2e)', () => {
       const image = await sharp({
         create: { width: 800, height: 500, channels: 3, background: '#336699' },
       })
-        .png()
+        .resize(400, 400)
+        .jpeg()
         .toBuffer();
 
       const res = await http()
@@ -177,8 +178,8 @@ describe('Hangout Hub API (e2e)', () => {
         .field('professionalTitle', 'Tester')
         .field('bio', 'Writing tests')
         .attach('avatar', image, {
-          filename: 'me.png',
-          contentType: 'image/png',
+          filename: 'me.jpg',
+          contentType: 'image/jpeg',
         })
         .expect(200);
       expect(res.body.professionalTitle).toBe('Tester');

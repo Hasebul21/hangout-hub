@@ -43,7 +43,7 @@ export class UsersController {
   @Put('me')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
-    FileInterceptor('avatar', { limits: { fileSize: 5 * 1024 * 1024 } }),
+    FileInterceptor('avatar', { limits: { fileSize: 2 * 1024 * 1024 } }),
   )
   updateProfile(
     @CurrentUserId() userId: number,
