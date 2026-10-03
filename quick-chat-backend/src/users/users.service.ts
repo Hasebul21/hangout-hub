@@ -41,6 +41,10 @@ export class UsersService {
     return user;
   }
 
+  findOwner() {
+    return this.users.findOneBy({ isOwner: true });
+  }
+
   findByEmailWithPassword(email: string) {
     return this.users
       .createQueryBuilder('user')
