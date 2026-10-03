@@ -2,53 +2,59 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { Comment, Post, PostFilter, PostPage, Reaction } from '../models/post';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PostService {
+  private url = `${environment.apiBaseUrl}/posts`;
 
-  private url = environment.apiBaseUrl;
   constructor(private http: HttpClient) { }
 
-  persistPost(post: any): Observable<any> {
-    return this.http.post<any>(`${this.url}/post`, post)
+  getPosts(page: number, size: number, filter: PostFilter = {}): Observable<PostPage> {
+    let params = new HttpParams().set('page', page).set('size', size);
+    for (const [key, value] of Object.entries(filter)) {
+      if (value) {
+        params = params.set(key, value);
+      }
+    }
+    return this.http.get<PostPage>(this.url, { params });
   }
 
-  getAllPosts(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.url}/post`)
+  getTrending(): Observable<Post[]> {
+    return this.http.get<Post[]>(`${this.url}/trending`);
   }
 
-  getPostById(id: string): Observable<any> {
-    return this.http.get<any>(`${this.url}/post/${id}`)
+  getPostCount(userId: number): Observable<{ count: number }> {
+    return this.http.get<{ count: number }>(`${this.url}/count/${userId}`);
   }
 
-  getPostsByUserName(userName: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.url}/post/user/${userName}`)
+  createPost(content: string): Observable<Post> {
+    return this.http.post<Post>(this.url, { content });
   }
 
-  getPostsByUserEmail(userEmail: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.url}/post/email/${userEmail}`)
+  updatePost(id: string, content: string): Observable<Post> {
+    return this.http.patch<Post>(`${this.url}/${id}`, { content });
   }
 
-  updatePost(id: string, post: any): Observable<any> {
-    return this.http.put<any>(`${this.url}/post/${id}`, post)
+  deletePost(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${id}`);
   }
 
-  updateLikeCount(postId: string, count: number, isLike: boolean): Observable<any> {
-    const body = { count, isLike };
-    return this.http.put<any>(`${this.url}/posts/${postId}/likes`, body);
+  react(id: string, type: Reaction): Observable<Post> {
+    return this.http.post<Post>(`${this.url}/${id}/reaction`, { type });
   }
 
-  deletePost(id: string): Observable<any> {
-    return this.http.delete<any>(`${this.url}/post/${id}`)
+  getComments(postId: string): Observable<Comment[]> {
+    return this.http.get<Comment[]>(`${this.url}/${postId}/comments`);
   }
 
-  getMostLikedPost(): Observable<void> {
-    return this.http.get<void>(`${this.url}/post/most-liked`)
+  addComment(postId: string, content: string): Observable<Comment> {
+    return this.http.post<Comment>(`${this.url}/${postId}/comments`, { content });
   }
 
-  getPostsByFilter(filter: any): Observable<any[]> {
-    return this.http.post<any[]>(`${this.url}/post/filter`, filter)
+  deleteComment(postId: string, commentId: string): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${postId}/comments/${commentId}`);
   }
 }
