@@ -6,11 +6,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
-import sharp from 'sharp';
 import { Repository } from 'typeorm';
 import { OWNER } from '../seed/seed-data.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { User } from './user.entity.js';
+
+const MAX_AVATAR_SIZE = 1024 * 1024;
 
 @Injectable()
 export class UsersService {
@@ -72,7 +73,7 @@ export class UsersService {
       }
     }
     if (image) {
-      user.avatar = await this.resizeAvatar(image);
+      user.avatar = await this.checkAvatar(image);
     }
 
     await this.users.save(user);
@@ -88,18 +89,14 @@ export class UsersService {
     return user?.avatar ?? null;
   }
 
-  private async resizeAvatar(image: Express.Multer.File) {
-    if (!image.mimetype.startsWith('image/')) {
-      throw new BadRequestException('Profile picture must be an image');
+  // the browser already resizes the picture, we only check what we get
+  private async checkAvatar(image: Express.Multer.File) {
+    if (image.mimetype !== 'image/jpeg') {
+      throw new BadRequestException('Profile picture must be a JPEG image');
     }
-    try {
-      return await sharp(image.buffer)
-        .rotate()
-        .resize(400, 400, { fit: 'cover' })
-        .jpeg({ quality: 75 })
-        .toBuffer();
-    } catch {
-      throw new BadRequestException('Could not read that image');
+    if (image.size > MAX_AVATAR_SIZE) {
+      throw new BadRequestException('Profile picture is too big');
     }
+    return image.buffer;
   }
 }
