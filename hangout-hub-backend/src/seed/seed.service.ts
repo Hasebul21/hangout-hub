@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { conversationId } from '../chat/messages.service.js';
 import { Message } from '../chat/message.entity.js';
 import { Comment } from '../posts/comment.entity.js';
@@ -19,6 +19,8 @@ import {
 } from './seed-data.js';
 
 const HOUR = 60 * 60 * 1000;
+// any number works, it just has to be the same for every server
+const SEED_LOCK = 734001;
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
@@ -32,9 +34,29 @@ export class SeedService implements OnApplicationBootstrap {
     @InjectRepository(Comment) private readonly comments: Repository<Comment>,
     @InjectRepository(Message) private readonly messages: Repository<Message>,
     private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async onApplicationBootstrap() {
+    // several servers can start at the same time, only one of them should seed
+    const runner = this.dataSource.createQueryRunner();
+    await runner.connect();
+    try {
+      await runner.query('SELECT pg_advisory_lock($1)', [SEED_LOCK]);
+      await this.seed();
+    } catch (err) {
+      // a failed seed should never stop the app from starting
+      this.logger.error(
+        'Seeding failed',
+        err instanceof Error ? err.stack : err,
+      );
+    } finally {
+      await runner.query('SELECT pg_advisory_unlock($1)', [SEED_LOCK]);
+      await runner.release();
+    }
+  }
+
+  private async seed() {
     const owner = await this.seedOwner();
 
     // everything else is only created once, on an empty database
@@ -59,17 +81,19 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedOwner() {
+    const configured = this.config.get<string>('OWNER_PASSWORD');
     const existing = await this.users.findOneBy({ email: OWNER.email });
     if (existing) {
-      if (!existing.isOwner) {
-        existing.isOwner = true;
-        await this.users.save(existing);
+      existing.isOwner = true;
+      // keep the owner password in sync with the environment
+      if (configured) {
+        existing.password = await bcrypt.hash(configured, 10);
       }
+      await this.users.save(existing);
       return existing;
     }
 
-    const password =
-      this.config.get<string>('OWNER_PASSWORD') || OWNER.defaultPassword;
+    const password = configured || OWNER.defaultPassword;
     const owner = await this.users.save(
       this.users.create({
         userName: OWNER.userName,
