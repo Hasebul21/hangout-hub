@@ -1,4 +1,4 @@
-body {
+.login-page {
   margin: 0;
   padding: 0;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -30,10 +30,18 @@ body {
   border-bottom: 1px solid #f0f0f0;
 
   .brand-logo {
-    font-size: 3rem;
-    line-height: 1;
-    margin-bottom: 8px;
-    filter: drop-shadow(0 4px 8px rgba(108, 99, 255, 0.4));
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 10px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6c63ff, #4f46e5);
+    color: #fff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(108, 99, 255, 0.4);
   }
 
   .brand-name {

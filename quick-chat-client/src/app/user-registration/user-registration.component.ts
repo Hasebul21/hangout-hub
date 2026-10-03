@@ -1,9 +1,8 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { AuthService } from '../service/auth-service';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../service/auth.service';
 
 @Component({
   selector: 'app-user-registration',
@@ -12,33 +11,38 @@ import { ToastrService } from 'ngx-toastr';
   styleUrl: './user-registration.component.scss'
 })
 export class UserRegistrationComponent {
-  username: string;
-  useremail: string;
-  password: string;
-  confirmPassword: string;
+  userName = '';
+  email = '';
+  password = '';
+  confirmPassword = '';
+  loading = false;
 
   constructor(private authService: AuthService,
     private router: Router,
-    private toastr: ToastrService) {
-  }
+    private toastr: ToastrService) { }
 
-  persistUser() {
-    this.authService.persisUser({
-      userName: this.username,
-      userEmail: this.useremail,
-      password: this.password
-    }).subscribe({
-      next: (response) => {
-        this.toastr.success('User registered successfully!', 'Success');
+  register() {
+    if (this.disableSubmit()) {
+      return;
+    }
+
+    this.loading = true;
+    this.authService.register(this.userName.trim(), this.email.trim(), this.password).subscribe({
+      next: () => {
+        this.loading = false;
+        this.toastr.success('Account created, you can log in now');
         this.router.navigate(['/login']);
       },
-      error: (err) => {
-        this.toastr.error('Failed to register user!', 'Error');
-      },
-    })
+      error: err => {
+        this.loading = false;
+        const message = err.error?.message;
+        this.toastr.error(Array.isArray(message) ? message[0] : message || 'Registration failed');
+      }
+    });
   }
 
-  disableSubmitButton(): boolean {
-    return !this.username || !this.useremail || !this.password || this.password !== this.confirmPassword;
+  disableSubmit(): boolean {
+    return !this.userName.trim() || !this.email || this.password.length < 6
+      || this.password !== this.confirmPassword || this.loading;
   }
 }

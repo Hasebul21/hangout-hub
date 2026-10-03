@@ -1,9 +1,8 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../service/auth-service';
 import { Router, RouterModule } from '@angular/router';
-import { StompService } from '../service/stomp.service';
 import { ToastrService } from 'ngx-toastr';
+import { AuthService } from '../service/auth.service';
 
 @Component({
   selector: 'app-user-login',
@@ -12,28 +11,31 @@ import { ToastrService } from 'ngx-toastr';
   styleUrl: './user-login.component.scss'
 })
 export class UserLoginComponent {
-    username: string = null;
-    password: string = null;
+  email = '';
+  password = '';
+  loading = false;
 
-    constructor(private auth : AuthService,
-      private router : Router,
-      private stompService : StompService,
-      private toastr: ToastrService
-    ){}
+  constructor(private auth: AuthService,
+    private router: Router,
+    private toastr: ToastrService) { }
 
-    login(){
-      this.auth.getUserByUserNameAndPassword(this.username, this.password).subscribe({
-        next: (response)=>{
-           response.profileImage = `data:image/jpeg;base64,${response.profileImage}`;
-           this.auth.setLoggedInUser(response);
-           this.stompService.connect(response);
-           this.toastr.success('User logged in successfully!', 'Success');
-           this.router.navigate(['/home']);
-        },
-        error: ()=>{
-          this.toastr.error('Failed to logged in user!', 'Error');
-        }
-      })
-
+  login() {
+    if (!this.email || !this.password) {
+      this.toastr.warning('Please enter your email and password');
+      return;
     }
+
+    this.loading = true;
+    this.auth.login(this.email.trim(), this.password).subscribe({
+      next: user => {
+        this.loading = false;
+        this.toastr.success(`Welcome back, ${user.userName}!`);
+        this.router.navigate(['/home']);
+      },
+      error: err => {
+        this.loading = false;
+        this.toastr.error(err.error?.message || 'Login failed');
+      }
+    });
+  }
 }
