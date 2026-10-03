@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiBaseUrl: 'https://quick-chat-production-3aee.up.railway.app',
+  apiBaseUrl: 'https://hangout-hub-api.onrender.com',
 };
