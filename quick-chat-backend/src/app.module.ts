@@ -7,6 +7,7 @@ import { ChatModule } from './chat/chat.module.js';
 import { ElasticModule } from './elastic/elastic.module.js';
 import { PostsModule } from './posts/posts.module.js';
 import { RedisModule } from './redis/redis.module.js';
+import { SeedModule } from './seed/seed.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { RedisModule } from './redis/redis.module.js';
     AuthModule,
     ChatModule,
     PostsModule,
+    SeedModule,
   ],
   controllers: [AppController],
 })
