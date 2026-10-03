@@ -1,74 +1,72 @@
 <div class="posts-wrapper">
+  @if (isLoading) {
+    @for (s of [1, 2, 3]; track s) {
+      <div class="skeleton-card">
+        <div class="skeleton-header">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line w60"></div>
+            <div class="skeleton-line w40"></div>
+          </div>
+        </div>
+        <div class="skeleton-line w100"></div>
+        <div class="skeleton-line w80"></div>
+      </div>
+    }
+  }
 
-  <!-- Loading Skeleton -->
-  <ng-container *ngIf="isLoading">
-    <div class="skeleton-card" *ngFor="let s of [1,2,3]">
-      <div class="skeleton-header">
-        <div class="skeleton-avatar"></div>
-        <div class="skeleton-lines">
-          <div class="skeleton-line w60"></div>
-          <div class="skeleton-line w40"></div>
+  @for (post of trendingPosts; track post.id; let i = $index) {
+    <div class="post-card" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2">
+      <div class="rank-bar"></div>
+      <div class="post-header">
+        <div class="avatar-ring" [class.gold-ring]="i === 0" [class.silver-ring]="i === 1" [class.bronze-ring]="i === 2">
+          <img class="post-avatar" [src]="avatarUrl(post.authorId)" (error)="useDefaultAvatar($event)" alt="avatar" />
+          <span class="rank-badge">#{{ i + 1 }}</span>
+        </div>
+        <div class="post-meta">
+          <div class="author-row">
+            <span class="post-author">{{ post.authorName }}</span>
+            @if (i === 0) {
+              <span class="hot-badge"><mat-icon>local_fire_department</mat-icon> Hot</span>
+            }
+          </div>
+          <span class="post-time">
+            <mat-icon class="clock-icon">schedule</mat-icon>
+            {{ post.createdAt | date: 'MMM d, y' }}
+          </span>
         </div>
       </div>
-      <div class="skeleton-line w100"></div>
-      <div class="skeleton-line w80"></div>
-    </div>
-  </ng-container>
 
-  <!-- Trending Cards -->
-  <div class="post-card" [class.gold]="i === 0" [class.silver]="i === 1" [class.bronze]="i === 2"
-    *ngFor="let post of trendingPosts; let i = index">
+      <p class="post-body">{{ post.content }}</p>
 
-    <!-- Rank accent bar -->
-    <div class="rank-bar"></div>
-
-    <div class="post-header">
-      <!-- Avatar -->
-      <div class="avatar-ring" [class.gold-ring]="i === 0" [class.silver-ring]="i === 1" [class.bronze-ring]="i === 2">
-        <img class="post-avatar"
-          [src]="post.creatorImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + post.creatorName"
-          (error)="$any($event.target).src='https://api.dicebear.com/7.x/avataaars/svg?seed=default'" alt="avatar" />
-        <span class="rank-badge">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1) }}</span>
-      </div>
-
-      <!-- Meta -->
-      <div class="post-meta">
-        <div class="author-row">
-          <span class="post-author">{{ post.creatorName }}</span>
-          <span class="hot-badge" *ngIf="i === 0"><mat-icon>local_fire_department</mat-icon> Hot</span>
-        </div>
-        <span class="post-time">
-          <mat-icon class="clock-icon">schedule</mat-icon>
-          {{ post.createdDate | date: 'MMM d, y' }}
+      <div class="post-footer">
+        <span class="reaction like-pill">
+          <mat-icon>thumb_up</mat-icon>
+          <span>{{ post.likeCount }}</span>
+        </span>
+        <span class="reaction dislike-pill">
+          <mat-icon>thumb_down</mat-icon>
+          <span>{{ post.dislikeCount }}</span>
+        </span>
+        <span class="reaction">
+          <mat-icon>chat_bubble_outline</mat-icon>
+          <span>{{ post.commentCount }}</span>
+        </span>
+        <span class="score-pill">
+          <mat-icon>trending_up</mat-icon>
+          {{ score(post) }}%
         </span>
       </div>
     </div>
+  }
 
-    <p class="post-body">{{ post.content }}</p>
-
-    <div class="post-footer">
-      <span class="reaction like-pill">
-        <mat-icon>thumb_up</mat-icon>
-        <span>{{ post.likeCount }}</span>
-      </span>
-      <span class="reaction dislike-pill">
-        <mat-icon>thumb_down</mat-icon>
-        <span>{{ post.dislikeCount }}</span>
-      </span>
-      <span class="score-pill" *ngIf="post.likeCount > 0">
-        <mat-icon>trending_up</mat-icon>
-        {{ ((post.likeCount / (post.likeCount + post.dislikeCount || 1)) * 100) | number:'1.0-0' }}%
-      </span>
+  @if (!isLoading && trendingPosts.length === 0) {
+    <div class="empty">
+      <div class="empty-icon-wrap">
+        <mat-icon>emoji_events</mat-icon>
+      </div>
+      <p class="empty-title">No trending posts yet</p>
+      <p class="empty-sub">Like a post in the feed and it shows up here.</p>
     </div>
-  </div>
-
-  <!-- Empty state -->
-  <div class="empty" *ngIf="!isLoading && trendingPosts.length === 0">
-    <div class="empty-icon-wrap">
-      <mat-icon>emoji_events</mat-icon>
-    </div>
-    <p class="empty-title">No trending posts yet</p>
-    <p class="empty-sub">Be the first to share something!</p>
-  </div>
-
+  }
 </div>
