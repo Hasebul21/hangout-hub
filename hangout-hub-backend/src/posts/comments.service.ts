@@ -2,110 +2,60 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { ElasticService } from '../elastic/elastic.service.js';
-import { UsersService } from '../users/users.service.js';
-import { POSTS_INDEX } from './post.js';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Comment } from './comment.entity.js';
+import { Post } from './post.entity.js';
+import { toCommentView } from './post-view.js';
 import { PostsService } from './posts.service.js';
 
-const INDEX = 'hangouthub_comments';
-
-export interface Comment {
-  id: string;
-  postId: string;
-  authorId: number;
-  authorName: string;
-  content: string;
-  createdAt: string;
-}
-
 @Injectable()
-export class CommentsService implements OnModuleInit {
+export class CommentsService {
   constructor(
-    private readonly elastic: ElasticService,
-    private readonly usersService: UsersService,
+    @InjectRepository(Comment) private readonly comments: Repository<Comment>,
+    @InjectRepository(Post) private readonly posts: Repository<Post>,
     private readonly postsService: PostsService,
   ) {}
 
-  async onModuleInit() {
-    await this.elastic.createIndexIfMissing(INDEX, {
-      properties: {
-        id: { type: 'keyword' },
-        postId: { type: 'keyword' },
-        authorId: { type: 'integer' },
-        authorName: { type: 'keyword' },
-        content: { type: 'text' },
-        createdAt: { type: 'date' },
-      },
-    });
-  }
-
   async list(postId: string) {
-    const { items } = await this.elastic.search<Comment>(INDEX, {
-      query: { term: { postId } },
-      sort: [{ createdAt: 'asc' }],
-      size: 200,
+    const comments = await this.comments.find({
+      where: { postId },
+      relations: { author: true },
+      order: { createdAt: 'ASC' },
+      take: 200,
     });
-    return items;
+    return comments.map(toCommentView);
   }
 
   async add(postId: string, userId: number, content: string) {
-    await this.postsService.findOne(postId);
-    const user = await this.usersService.findById(userId);
-
-    const comment: Comment = {
-      id: randomUUID(),
-      postId,
-      authorId: user.id,
-      authorName: user.userName,
-      content,
-      createdAt: new Date().toISOString(),
-    };
-    await this.elastic.request(
-      'PUT',
-      `/${INDEX}/_doc/${comment.id}?refresh=true`,
-      comment,
+    await this.postsService.ensureExists(postId);
+    const comment = await this.comments.save(
+      this.comments.create({ postId, authorId: userId, content }),
     );
-    await this.changeCommentCount(postId, 1);
-    return comment;
+    await this.updateCommentCount(postId);
+
+    const saved = await this.comments.findOneOrFail({
+      where: { id: comment.id },
+      relations: { author: true },
+    });
+    return toCommentView(saved);
   }
 
   async remove(postId: string, commentId: string, userId: number) {
-    const comment = await this.elastic.getDocument<Comment>(INDEX, commentId);
-    if (!comment || comment.postId !== postId) {
+    const comment = await this.comments.findOneBy({ id: commentId, postId });
+    if (!comment) {
       throw new NotFoundException('Comment not found');
     }
     if (comment.authorId !== userId) {
       throw new ForbiddenException('You can only delete your own comments');
     }
-    await this.elastic.request(
-      'DELETE',
-      `/${INDEX}/_doc/${commentId}?refresh=true`,
-    );
-    await this.changeCommentCount(postId, -1);
+    await this.comments.delete(commentId);
+    await this.updateCommentCount(postId);
   }
 
-  async removeAllForPost(postId: string) {
-    await this.elastic.request(
-      'POST',
-      `/${INDEX}/_delete_by_query?refresh=true`,
-      { query: { term: { postId } } },
-    );
-  }
-
-  private async changeCommentCount(postId: string, delta: number) {
-    await this.elastic.request(
-      'POST',
-      `/${POSTS_INDEX}/_update/${encodeURIComponent(postId)}?refresh=true&retry_on_conflict=3`,
-      {
-        script: {
-          source:
-            'ctx._source.commentCount = Math.max(0, (ctx._source.commentCount == null ? 0 : ctx._source.commentCount) + params.delta)',
-          params: { delta },
-        },
-      },
-    );
+  private async updateCommentCount(postId: string) {
+    const commentCount = await this.comments.countBy({ postId });
+    await this.posts.update(postId, { commentCount });
   }
 }

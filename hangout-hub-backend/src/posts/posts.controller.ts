@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -13,28 +14,19 @@ import {
 } from '@nestjs/common';
 import { CurrentUserId } from '../auth/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-import { CommentsService } from './comments.service.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
 import { PostContentDto } from './dto/post-content.dto.js';
 import { ReactionDto } from './dto/reaction.dto.js';
-import { toPostView } from './post.js';
 import { PostsService } from './posts.service.js';
 
 @Controller('posts')
 @UseGuards(JwtAuthGuard)
 export class PostsController {
-  constructor(
-    private readonly postsService: PostsService,
-    private readonly commentsService: CommentsService,
-  ) {}
+  constructor(private readonly postsService: PostsService) {}
 
   @Get()
-  async list(@CurrentUserId() userId: number, @Query() query: ListPostsDto) {
-    const page = await this.postsService.list(query);
-    return {
-      ...page,
-      items: page.items.map((post) => toPostView(post, userId)),
-    };
+  list(@CurrentUserId() userId: number, @Query() query: ListPostsDto) {
+    return this.postsService.list(query, userId);
   }
 
   @Get('count/:userId')
@@ -43,53 +35,48 @@ export class PostsController {
   }
 
   @Get('trending')
-  async trending(@CurrentUserId() userId: number) {
-    const posts = await this.postsService.trending();
-    return posts.map((post) => toPostView(post, userId));
+  trending() {
+    return this.postsService.trending();
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @CurrentUserId() userId: number) {
-    return toPostView(await this.postsService.findOne(id), userId);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() userId: number,
+  ) {
+    return this.postsService.findOne(id, userId);
   }
 
   @Post()
-  async create(@CurrentUserId() userId: number, @Body() body: PostContentDto) {
-    return toPostView(
-      await this.postsService.create(userId, body.content),
-      userId,
-    );
+  create(@CurrentUserId() userId: number, @Body() body: PostContentDto) {
+    return this.postsService.create(userId, body.content);
   }
 
   @Patch(':id')
-  async update(
-    @Param('id') id: string,
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() userId: number,
     @Body() body: PostContentDto,
   ) {
-    return toPostView(
-      await this.postsService.update(id, userId, body.content),
-      userId,
-    );
+    return this.postsService.update(id, userId, body.content);
   }
 
   @Post(':id/reaction')
   @HttpCode(200)
-  async react(
-    @Param('id') id: string,
+  react(
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUserId() userId: number,
     @Body() body: ReactionDto,
   ) {
-    return toPostView(
-      await this.postsService.react(id, userId, body.type),
-      userId,
-    );
+    return this.postsService.react(id, userId, body.type);
   }
 
   @Delete(':id')
   @HttpCode(204)
-  async remove(@Param('id') id: string, @CurrentUserId() userId: number) {
-    await this.postsService.remove(id, userId);
-    await this.commentsService.removeAllForPost(id);
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUserId() userId: number,
+  ) {
+    return this.postsService.remove(id, userId);
   }
 }

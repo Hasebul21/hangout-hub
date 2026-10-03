@@ -1,20 +1,11 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { ElasticService } from '../elastic/elastic.service.js';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { escapeLike } from '../posts/post-view.js';
 import { UsersService } from '../users/users.service.js';
+import { Message } from './message.entity.js';
 
-const INDEX = 'hangouthub_messages';
 const MAX_LENGTH = 1000;
-
-export interface Message {
-  id: string;
-  conversationId: string;
-  senderId: number;
-  receiverId: number;
-  content: string;
-  read: boolean;
-  createdAt: string;
-}
 
 // both users get the same id no matter who sends first
 export function conversationId(a: number, b: number) {
@@ -22,29 +13,11 @@ export function conversationId(a: number, b: number) {
 }
 
 @Injectable()
-export class MessagesService implements OnModuleInit {
+export class MessagesService {
   constructor(
-    private readonly elastic: ElasticService,
+    @InjectRepository(Message) private readonly messages: Repository<Message>,
     private readonly usersService: UsersService,
   ) {}
-
-  async onModuleInit() {
-    await this.elastic.createIndexIfMissing(INDEX, {
-      properties: {
-        id: { type: 'keyword' },
-        conversationId: { type: 'keyword' },
-        senderId: { type: 'integer' },
-        receiverId: { type: 'integer' },
-        content: { type: 'text' },
-        read: { type: 'boolean' },
-        createdAt: { type: 'date' },
-      },
-    });
-    // older indexes were created before the read flag existed
-    await this.elastic.request('PUT', `/${INDEX}/_mapping`, {
-      properties: { read: { type: 'boolean' } },
-    });
-  }
 
   async send(senderId: number, receiverId: number, content: string) {
     content = (content ?? '').trim();
@@ -61,31 +34,24 @@ export class MessagesService implements OnModuleInit {
     }
     await this.usersService.findById(receiverId);
 
-    const message: Message = {
-      id: randomUUID(),
-      conversationId: conversationId(senderId, receiverId),
-      senderId,
-      receiverId,
-      content,
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    await this.elastic.request(
-      'PUT',
-      `/${INDEX}/_doc/${message.id}?refresh=true`,
-      message,
+    return this.messages.save(
+      this.messages.create({
+        conversationId: conversationId(senderId, receiverId),
+        senderId,
+        receiverId,
+        content,
+      }),
     );
-    return message;
   }
 
   async conversation(userId: number, otherUserId: number) {
-    const { items } = await this.elastic.search<Message>(INDEX, {
-      query: { term: { conversationId: conversationId(userId, otherUserId) } },
-      sort: [{ createdAt: 'desc' }],
-      size: 100,
+    const messages = await this.messages.find({
+      where: { conversationId: conversationId(userId, otherUserId) },
+      order: { createdAt: 'DESC' },
+      take: 100,
     });
     // newest 100, shown oldest first
-    return items.reverse();
+    return messages.reverse();
   }
 
   async search(userId: number, otherUserId: number, text: string) {
@@ -93,57 +59,41 @@ export class MessagesService implements OnModuleInit {
     if (!text) {
       return [];
     }
-    const { items } = await this.elastic.search<Message>(INDEX, {
-      query: {
-        bool: {
-          filter: [
-            { term: { conversationId: conversationId(userId, otherUserId) } },
-          ],
-          must: [{ match: { content: { query: text, fuzziness: 'AUTO' } } }],
-        },
-      },
-      sort: [{ createdAt: 'desc' }],
-      size: 50,
-    });
-    return items;
+    return this.messages
+      .createQueryBuilder('message')
+      .where('message.conversationId = :id', {
+        id: conversationId(userId, otherUserId),
+      })
+      .andWhere('message.content ILIKE :text', {
+        text: `%${escapeLike(text)}%`,
+      })
+      .orderBy('message.createdAt', 'DESC')
+      .take(50)
+      .getMany();
   }
 
   // number of unread messages per sender, for the current user
   async unreadCounts(userId: number) {
-    const data = await this.elastic.request('POST', `/${INDEX}/_search`, {
-      size: 0,
-      query: {
-        bool: {
-          filter: [{ term: { receiverId: userId } }],
-          must_not: [{ term: { read: true } }],
-        },
-      },
-      aggs: { bySender: { terms: { field: 'senderId', size: 500 } } },
-    });
+    const rows = await this.messages
+      .createQueryBuilder('message')
+      .select('message.senderId', 'senderId')
+      .addSelect('COUNT(*)', 'count')
+      .where('message.receiverId = :userId', { userId })
+      .andWhere('message.read = false')
+      .groupBy('message.senderId')
+      .getRawMany<{ senderId: number; count: string }>();
 
     const counts: Record<number, number> = {};
-    for (const bucket of data.aggregations.bySender.buckets) {
-      counts[bucket.key] = bucket.doc_count;
+    for (const row of rows) {
+      counts[row.senderId] = Number(row.count);
     }
     return counts;
   }
 
   async markAsRead(userId: number, otherUserId: number) {
-    await this.elastic.request(
-      'POST',
-      `/${INDEX}/_update_by_query?refresh=true&conflicts=proceed`,
-      {
-        query: {
-          bool: {
-            filter: [
-              { term: { senderId: otherUserId } },
-              { term: { receiverId: userId } },
-            ],
-            must_not: [{ term: { read: true } }],
-          },
-        },
-        script: { source: 'ctx._source.read = true' },
-      },
+    await this.messages.update(
+      { senderId: otherUserId, receiverId: userId, read: false },
+      { read: true },
     );
   }
 }

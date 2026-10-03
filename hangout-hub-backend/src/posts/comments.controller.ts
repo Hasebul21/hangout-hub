@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   Param,
+  ParseUUIDPipe,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -19,13 +20,13 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Get()
-  list(@Param('postId') postId: string) {
+  list(@Param('postId', ParseUUIDPipe) postId: string) {
     return this.commentsService.list(postId);
   }
 
   @Post()
   add(
-    @Param('postId') postId: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
     @CurrentUserId() userId: number,
     @Body() body: PostContentDto,
   ) {
@@ -35,8 +36,8 @@ export class CommentsController {
   @Delete(':commentId')
   @HttpCode(204)
   remove(
-    @Param('postId') postId: string,
-    @Param('commentId') commentId: string,
+    @Param('postId', ParseUUIDPipe) postId: string,
+    @Param('commentId', ParseUUIDPipe) commentId: string,
     @CurrentUserId() userId: number,
   ) {
     return this.commentsService.remove(postId, commentId, userId);

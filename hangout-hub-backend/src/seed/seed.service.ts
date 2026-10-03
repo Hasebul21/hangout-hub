@@ -2,11 +2,13 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import bcrypt from 'bcryptjs';
-import { randomBytes, randomUUID } from 'crypto';
+import { randomBytes } from 'crypto';
 import { Repository } from 'typeorm';
 import { conversationId } from '../chat/messages.service.js';
-import { ElasticService } from '../elastic/elastic.service.js';
-import { Post, POSTS_INDEX, postMappings } from '../posts/post.js';
+import { Message } from '../chat/message.entity.js';
+import { Comment } from '../posts/comment.entity.js';
+import { Post } from '../posts/post.entity.js';
+import { Reaction } from '../posts/reaction.entity.js';
 import { User } from '../users/user.entity.js';
 import {
   DEMO_USERS,
@@ -24,7 +26,11 @@ export class SeedService implements OnApplicationBootstrap {
 
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
-    private readonly elastic: ElasticService,
+    @InjectRepository(Post) private readonly posts: Repository<Post>,
+    @InjectRepository(Reaction)
+    private readonly reactions: Repository<Reaction>,
+    @InjectRepository(Comment) private readonly comments: Repository<Comment>,
+    @InjectRepository(Message) private readonly messages: Repository<Message>,
     private readonly config: ConfigService,
   ) {}
 
@@ -32,7 +38,7 @@ export class SeedService implements OnApplicationBootstrap {
     const owner = await this.seedOwner();
 
     // everything else is only created once, on an empty database
-    const alreadySeeded = await this.users.findOneBy({
+    const alreadySeeded = await this.users.existsBy({
       email: DEMO_USERS[0].email,
     });
     if (alreadySeeded) {
@@ -95,33 +101,27 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedPosts(people: Map<string, User>) {
-    await this.elastic.createIndexIfMissing(POSTS_INDEX, postMappings);
-
     const posts = new Map<string, Post>();
     for (const item of SEED_POSTS) {
-      const author = people.get(item.author)!;
-      const likedBy = (SEED_LIKES[item.key] ?? []).map(
-        (key) => people.get(key)!.id,
+      const likedBy = SEED_LIKES[item.key] ?? [];
+      const date = new Date(Date.now() - item.hoursAgo * HOUR);
+      const post = await this.posts.save(
+        this.posts.create({
+          authorId: people.get(item.author)!.id,
+          content: item.content,
+          likeCount: likedBy.length,
+          commentCount: SEED_COMMENTS.filter((c) => c.post === item.key).length,
+          createdAt: date,
+          updatedAt: date,
+        }),
       );
-      const date = new Date(Date.now() - item.hoursAgo * HOUR).toISOString();
-      const commentCount = SEED_COMMENTS.filter(
-        (c) => c.post === item.key,
-      ).length;
-
-      const post: Post = {
-        id: randomUUID(),
-        authorId: author.id,
-        authorName: author.userName,
-        content: item.content,
-        likeCount: likedBy.length,
-        dislikeCount: 0,
-        likedBy,
-        dislikedBy: [],
-        commentCount,
-        createdAt: date,
-        updatedAt: date,
-      };
-      await this.put(POSTS_INDEX, post.id, post);
+      for (const key of likedBy) {
+        await this.reactions.insert({
+          postId: post.id,
+          userId: people.get(key)!.id,
+          type: 'like',
+        });
+      }
       posts.set(item.key, post);
     }
     return posts;
@@ -133,20 +133,18 @@ export class SeedService implements OnApplicationBootstrap {
   ) {
     for (const [index, item] of SEED_COMMENTS.entries()) {
       const post = posts.get(item.post)!;
-      const author = people.get(item.author)!;
       // a little while after the post, in order
       const date = new Date(
-        new Date(post.createdAt).getTime() + (index + 1) * 20 * 60 * 1000,
+        post.createdAt.getTime() + (index + 1) * 20 * 60 * 1000,
       );
-      const id = randomUUID();
-      await this.put('hangouthub_comments', id, {
-        id,
-        postId: post.id,
-        authorId: author.id,
-        authorName: author.userName,
-        content: item.content,
-        createdAt: date.toISOString(),
-      });
+      await this.comments.save(
+        this.comments.create({
+          postId: post.id,
+          authorId: people.get(item.author)!.id,
+          content: item.content,
+          createdAt: date,
+        }),
+      );
     }
   }
 
@@ -167,30 +165,22 @@ export class SeedService implements OnApplicationBootstrap {
     }
   }
 
-  private async saveMessage(
+  private saveMessage(
     senderId: number,
     receiverId: number,
     content: string,
     sentAt: number,
     read: boolean,
   ) {
-    const id = randomUUID();
-    await this.put('hangouthub_messages', id, {
-      id,
-      conversationId: conversationId(senderId, receiverId),
-      senderId,
-      receiverId,
-      content,
-      read,
-      createdAt: new Date(sentAt).toISOString(),
-    });
-  }
-
-  private put(index: string, id: string, doc: object) {
-    return this.elastic.request(
-      'PUT',
-      `/${index}/_doc/${id}?refresh=true`,
-      doc,
+    return this.messages.save(
+      this.messages.create({
+        conversationId: conversationId(senderId, receiverId),
+        senderId,
+        receiverId,
+        content,
+        read,
+        createdAt: new Date(sentAt),
+      }),
     );
   }
 }
