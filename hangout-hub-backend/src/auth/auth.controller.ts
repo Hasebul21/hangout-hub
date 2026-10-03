@@ -4,8 +4,10 @@ import {
   Get,
   HttpCode,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 import { CurrentUserId } from './current-user-id.decorator.js';
@@ -33,6 +35,12 @@ export class AuthController {
   @HttpCode(200)
   login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password);
+  }
+
+  @Post('guest')
+  @HttpCode(200)
+  guest(@Req() req: Request) {
+    return this.authService.loginAsGuest(req.ip ?? 'unknown');
   }
 
   @Get('me')
