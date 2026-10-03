@@ -1,3 +1,4 @@
 {
-  "framework": "nestjs"
+  "framework": "nestjs",
+  "regions": ["sin1"]
 }
