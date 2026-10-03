@@ -1,0 +1,36 @@
+<div class="comments">
+  @if (loading) {
+    <p class="muted">Loading comments...</p>
+  }
+
+  @for (comment of comments; track comment.id) {
+    <div class="comment">
+      <img class="comment-avatar" [src]="avatarUrl(comment.authorId)" (error)="useDefaultAvatar($event)" alt="avatar" />
+      <div class="comment-body">
+        <div class="comment-head">
+          <strong>{{ comment.authorName }}</strong>
+          <span class="muted">{{ timeAgo(comment.createdAt) }}</span>
+          @if (comment.authorId === myId) {
+            <button class="comment-delete" nz-popconfirm nzPopconfirmTitle="Delete this comment?" nzOkText="Delete"
+              nzOkDanger (nzOnConfirm)="deleteComment(comment)" title="Delete">
+              <span nz-icon nzType="delete"></span>
+            </button>
+          }
+        </div>
+        <div class="comment-text">{{ comment.content }}</div>
+      </div>
+    </div>
+  } @empty {
+    @if (!loading) {
+      <p class="muted">No comments yet. Be the first one.</p>
+    }
+  }
+
+  <div class="comment-form">
+    <input nz-input placeholder="Write a comment..." maxlength="500" [(ngModel)]="newComment"
+      (keydown.enter)="addComment()" />
+    <button nz-button nzType="primary" [disabled]="!newComment.trim() || sending" (click)="addComment()">
+      <span nz-icon nzType="send"></span>
+    </button>
+  </div>
+</div>

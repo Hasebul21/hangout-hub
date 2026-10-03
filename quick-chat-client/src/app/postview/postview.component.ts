@@ -13,6 +13,7 @@ import { Subject, Subscription, debounceTime } from 'rxjs';
 import { Post, PostFilter, Reaction } from '../models/post';
 import { User } from '../models/user';
 import { NavbarComponent } from '../navbar/navbar.component';
+import { PostCommentsComponent } from '../post-comments/post-comments.component';
 import { AuthService } from '../service/auth.service';
 import { PostService } from '../service/post.service';
 import { UserService } from '../service/user.service';
@@ -23,7 +24,7 @@ const PAGE_SIZE = 8;
 @Component({
   selector: 'app-postview',
   imports: [
-    CommonModule, FormsModule, MatIconModule, NavbarComponent,
+    CommonModule, FormsModule, MatIconModule, NavbarComponent, PostCommentsComponent,
     NzPaginationModule, NzDatePickerModule, NzModalModule, NzPopconfirmModule, NzInputModule, NzTagModule
   ],
   templateUrl: './postview.component.html',
@@ -43,6 +44,7 @@ export class PostviewComponent implements OnInit, OnDestroy {
   dateRange: Date[] = [];
 
   demoUserIds = new Set<number>();
+  openComments = new Set<string>();
 
   editingPost: Post | null = null;
   editContent = '';
@@ -163,6 +165,18 @@ export class PostviewComponent implements OnInit, OnDestroy {
       },
       error: () => this.msg.error('Could not delete the post')
     });
+  }
+
+  toggleComments(post: Post) {
+    if (this.openComments.has(post.id)) {
+      this.openComments.delete(post.id);
+    } else {
+      this.openComments.add(post.id);
+    }
+  }
+
+  onCommentCount(post: Post, count: number) {
+    post.commentCount = count;
   }
 
   wasEdited(post: Post): boolean {
