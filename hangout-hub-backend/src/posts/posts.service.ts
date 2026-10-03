@@ -2,179 +2,207 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { ChatGateway } from '../chat/chat.gateway.js';
-import { ElasticService } from '../elastic/elastic.service.js';
-import { UsersService } from '../users/users.service.js';
 import { ListPostsDto } from './dto/list-posts.dto.js';
-import {
-  Post,
-  POSTS_INDEX,
-  postMappings,
-  Reaction,
-  toPostView,
-} from './post.js';
-
-// Toggles the user's vote. Liking removes an earlier dislike and the other way
-// round, clicking the same button twice takes the vote back.
-const REACT_SCRIPT = `
-  def mine = params.type == 'like' ? ctx._source.likedBy : ctx._source.dislikedBy;
-  def other = params.type == 'like' ? ctx._source.dislikedBy : ctx._source.likedBy;
-  if (mine.contains(params.userId)) {
-    mine.removeIf(id -> id == params.userId);
-  } else {
-    mine.add(params.userId);
-    other.removeIf(id -> id == params.userId);
-  }
-  ctx._source.likeCount = ctx._source.likedBy.size();
-  ctx._source.dislikeCount = ctx._source.dislikedBy.size();
-`;
+import { Post } from './post.entity.js';
+import { escapeLike, toPostView } from './post-view.js';
+import { Reaction, ReactionType } from './reaction.entity.js';
 
 @Injectable()
-export class PostsService implements OnModuleInit {
+export class PostsService {
   constructor(
-    private readonly elastic: ElasticService,
-    private readonly usersService: UsersService,
+    @InjectRepository(Post) private readonly posts: Repository<Post>,
+    @InjectRepository(Reaction)
+    private readonly reactions: Repository<Reaction>,
+    private readonly dataSource: DataSource,
     private readonly gateway: ChatGateway,
   ) {}
 
-  async onModuleInit() {
-    await this.elastic.createIndexIfMissing(POSTS_INDEX, postMappings);
-  }
-
   async create(userId: number, content: string) {
-    const user = await this.usersService.findById(userId);
-    const now = new Date().toISOString();
-    const post: Post = {
-      id: randomUUID(),
-      authorId: user.id,
-      authorName: user.userName,
-      content,
-      likeCount: 0,
-      dislikeCount: 0,
-      likedBy: [],
-      dislikedBy: [],
-      commentCount: 0,
-      createdAt: now,
-      updatedAt: now,
-    };
-    await this.save(post);
+    const now = new Date();
+    const post = await this.posts.save(
+      this.posts.create({
+        authorId: userId,
+        content,
+        createdAt: now,
+        updatedAt: now,
+      }),
+    );
     await this.publishTrending();
-    await this.publishPostCount(user.id);
-    return post;
+    await this.publishPostCount(userId);
+    return this.findOne(post.id, userId);
   }
 
-  async list(query: ListPostsDto) {
-    const filters: object[] = [];
-    if (query.author?.trim()) {
-      filters.push({
-        match_phrase_prefix: { authorName: query.author.trim() },
+  async list(query: ListPostsDto, userId: number) {
+    const qb = this.posts
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .orderBy('post.createdAt', 'DESC')
+      .skip((query.page - 1) * query.size)
+      .take(query.size);
+
+    const author = query.author?.trim();
+    if (author) {
+      // match the start of the first or the last name
+      qb.andWhere(
+        '(author.userName ILIKE :start OR author.userName ILIKE :word)',
+        {
+          start: `${escapeLike(author)}%`,
+          word: `% ${escapeLike(author)}%`,
+        },
+      );
+    }
+    const text = query.q?.trim();
+    if (text) {
+      qb.andWhere('post.content ILIKE :text', {
+        text: `%${escapeLike(text)}%`,
       });
     }
-    if (query.q?.trim()) {
-      filters.push({
-        match: { content: { query: query.q.trim(), operator: 'and' } },
-      });
+    if (query.from) {
+      qb.andWhere('post.createdAt >= :from', { from: query.from });
     }
-    if (query.from || query.to) {
-      filters.push({
-        range: { createdAt: { gte: query.from, lte: query.to } },
-      });
+    if (query.to) {
+      qb.andWhere('post.createdAt <= :to', { to: query.to });
     }
 
-    const { items, total } = await this.elastic.search<Post>(POSTS_INDEX, {
-      query: filters.length ? { bool: { must: filters } } : { match_all: {} },
-      sort: [{ createdAt: 'desc' }],
-      from: (query.page - 1) * query.size,
+    const [posts, total] = await qb.getManyAndCount();
+    const myReactions = await this.myReactions(
+      userId,
+      posts.map((post) => post.id),
+    );
+    return {
+      items: posts.map((post) => toPostView(post, myReactions.get(post.id))),
+      total,
+      page: query.page,
       size: query.size,
-      track_total_hits: true,
-    });
-    return { items, total, page: query.page, size: query.size };
+    };
   }
 
-  async findOne(id: string) {
-    const post = await this.elastic.getDocument<Post>(POSTS_INDEX, id);
+  async findOne(id: string, userId: number) {
+    const post = await this.posts.findOne({
+      where: { id },
+      relations: { author: true },
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
-    return post;
+    const myReactions = await this.myReactions(userId, [id]);
+    return toPostView(post, myReactions.get(id));
   }
 
   async update(id: string, userId: number, content: string) {
-    const post = await this.findOwnPost(id, userId);
-    post.content = content;
-    post.updatedAt = new Date().toISOString();
-    await this.save(post);
+    await this.findOwnPost(id, userId);
+    await this.posts.update(id, { content, updatedAt: new Date() });
     await this.publishTrending();
-    return post;
+    return this.findOne(id, userId);
   }
 
   async remove(id: string, userId: number) {
     await this.findOwnPost(id, userId);
-    await this.elastic.request(
-      'DELETE',
-      `/${POSTS_INDEX}/_doc/${encodeURIComponent(id)}?refresh=true`,
-    );
+    // comments and reactions go with it (on delete cascade)
+    await this.posts.delete(id);
     await this.publishTrending();
     await this.publishPostCount(userId);
   }
 
-  async countByAuthor(authorId: number) {
-    const data = await this.elastic.request('POST', `/${POSTS_INDEX}/_count`, {
-      query: { term: { authorId } },
+  // Liking removes an earlier dislike and the other way round, clicking the
+  // same button twice takes the vote back.
+  async react(id: string, userId: number, type: ReactionType) {
+    await this.dataSource.transaction(async (manager) => {
+      const post = await manager.findOne(Post, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!post) {
+        throw new NotFoundException('Post not found');
+      }
+
+      const existing = await manager.findOneBy(Reaction, {
+        postId: id,
+        userId,
+      });
+      if (existing && existing.type === type) {
+        await manager.delete(Reaction, existing.id);
+      } else if (existing) {
+        await manager.update(Reaction, existing.id, { type });
+      } else {
+        await manager.insert(Reaction, { postId: id, userId, type });
+      }
+
+      const likeCount = await manager.countBy(Reaction, {
+        postId: id,
+        type: 'like',
+      });
+      const dislikeCount = await manager.countBy(Reaction, {
+        postId: id,
+        type: 'dislike',
+      });
+      await manager.update(Post, id, { likeCount, dislikeCount });
     });
-    return data.count as number;
-  }
 
-  private async publishPostCount(userId: number) {
-    const count = await this.countByAuthor(userId);
-    this.gateway.sendToUser(userId, 'post-count', { count });
-  }
-
-  async react(id: string, userId: number, type: Reaction) {
-    await this.findOne(id);
-    await this.elastic.request(
-      'POST',
-      `/${POSTS_INDEX}/_update/${encodeURIComponent(id)}?refresh=true&retry_on_conflict=3`,
-      { script: { source: REACT_SCRIPT, params: { userId, type } } },
-    );
     await this.publishTrending();
-    return this.findOne(id);
+    return this.findOne(id, userId);
   }
 
   async trending() {
-    const { items } = await this.elastic.search<Post>(POSTS_INDEX, {
-      query: { range: { likeCount: { gt: 0 } } },
-      sort: [{ likeCount: 'desc' }, { createdAt: 'desc' }],
-      size: 8,
-    });
-    return items;
+    const posts = await this.posts
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.author', 'author')
+      .where('post.likeCount > 0')
+      .orderBy('post.likeCount', 'DESC')
+      .addOrderBy('post.createdAt', 'DESC')
+      .take(8)
+      .getMany();
+    return posts.map((post) => toPostView(post));
   }
 
-  // everyone watching the home page gets the new ranking
-  private async publishTrending() {
-    const posts = await this.trending();
-    this.gateway.sendToAll(
-      'trending-posts',
-      posts.map((post) => toPostView(post, 0)),
-    );
+  countByAuthor(authorId: number) {
+    return this.posts.countBy({ authorId });
+  }
+
+  async ensureExists(id: string) {
+    const exists = await this.posts.existsBy({ id });
+    if (!exists) {
+      throw new NotFoundException('Post not found');
+    }
+  }
+
+  private async myReactions(userId: number, postIds: string[]) {
+    const result = new Map<string, ReactionType>();
+    if (!postIds.length) {
+      return result;
+    }
+    const reactions = await this.reactions.findBy({
+      userId,
+      postId: In(postIds),
+    });
+    for (const reaction of reactions) {
+      result.set(reaction.postId, reaction.type);
+    }
+    return result;
   }
 
   private async findOwnPost(id: string, userId: number) {
-    const post = await this.findOne(id);
+    const post = await this.posts.findOneBy({ id });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
     if (post.authorId !== userId) {
       throw new ForbiddenException('You can only change your own posts');
     }
     return post;
   }
 
-  private save(post: Post) {
-    return this.elastic.request(
-      'PUT',
-      `/${POSTS_INDEX}/_doc/${encodeURIComponent(post.id)}?refresh=true`,
-      post,
-    );
+  // everyone watching the home page gets the new ranking
+  private async publishTrending() {
+    this.gateway.sendToAll('trending-posts', await this.trending());
+  }
+
+  private async publishPostCount(userId: number) {
+    const count = await this.countByAuthor(userId);
+    this.gateway.sendToUser(userId, 'post-count', { count });
   }
 }
