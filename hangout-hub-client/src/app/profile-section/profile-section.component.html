@@ -1,0 +1,72 @@
+<aside class="profile-sidebar">
+  <div class="avatar-wrap">
+    <img class="sidebar-avatar" [src]="avatarUrl(loggedInUser?.id, loggedInUser?.updatedAt)"
+      (error)="useDefaultAvatar($event)" alt="Profile" />
+  </div>
+
+  <div class="sidebar-identity">
+    <h3 class="sidebar-name">{{ loggedInUser?.userName }}</h3>
+    <p class="sidebar-title">{{ loggedInUser?.professionalTitle || 'Hangout Hub member' }}</p>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="stats-row">
+    <div class="stat">
+      <span class="stat-value">{{ postCount }}</span>
+      <span class="stat-label">Posts</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-value">{{ loggedInUser?.createdAt | date: 'MMM y' }}</span>
+      <span class="stat-label">Joined</span>
+    </div>
+  </div>
+
+  <mat-divider></mat-divider>
+
+  <div class="sidebar-details">
+    @if (loggedInUser?.location) {
+      <div class="detail-row">
+        <mat-icon>location_on</mat-icon>
+        <span>{{ loggedInUser?.location }}</span>
+      </div>
+    }
+    @if (loggedInUser?.email) {
+      <div class="detail-row">
+        <mat-icon>email</mat-icon>
+        <span>{{ loggedInUser?.email }}</span>
+      </div>
+    }
+    @if (loggedInUser?.skills) {
+      <div class="detail-row">
+        <mat-icon>code</mat-icon>
+        <span>{{ loggedInUser?.skills }}</span>
+      </div>
+    }
+    @if (loggedInUser?.hobbies) {
+      <div class="detail-row">
+        <mat-icon>favorite_border</mat-icon>
+        <span>{{ loggedInUser?.hobbies }}</span>
+      </div>
+    }
+    @if (loggedInUser?.portfolio) {
+      <div class="detail-row">
+        <mat-icon>link</mat-icon>
+        <a [href]="loggedInUser?.portfolio" target="_blank" rel="noopener">Portfolio</a>
+      </div>
+    }
+    @if (loggedInUser?.instagram) {
+      <div class="detail-row">
+        <mat-icon>photo_camera</mat-icon>
+        <a [href]="instagramUrl" target="_blank" rel="noopener">{{ loggedInUser?.instagram }}</a>
+      </div>
+    }
+    @if (loggedInUser?.bio) {
+      <div class="detail-row">
+        <mat-icon>info_outline</mat-icon>
+        <span>{{ loggedInUser?.bio }}</span>
+      </div>
+    }
+  </div>
+</aside>

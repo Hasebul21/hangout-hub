@@ -1,9 +1,11 @@
+name: hangout-hub
+
 services:
   postgres:
     image: postgres:16
-    container_name: quickchat_postgres
+    container_name: hangouthub_postgres
     environment:
-      POSTGRES_DB: quickchat
+      POSTGRES_DB: hangouthub
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -13,13 +15,13 @@ services:
 
   redis:
     image: redis:7
-    container_name: quickchat_redis
+    container_name: hangouthub_redis
     ports:
       - "6379:6379"
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
-    container_name: quickchat_elasticsearch
+    container_name: hangouthub_elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -30,8 +32,8 @@ services:
       - es-data:/usr/share/elasticsearch/data
 
   backend:
-    build: ./quick-chat-backend
-    container_name: quickchat_backend
+    build: ./hangout-hub-backend
+    container_name: hangouthub_backend
     depends_on:
       - postgres
       - redis
@@ -39,7 +41,7 @@ services:
     environment:
       PORT: 8080
       ALLOWED_ORIGINS: http://localhost:4200
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/quickchat
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/hangouthub
       REDIS_URL: redis://redis:6379
       ELASTICSEARCH_URL: http://elasticsearch:9200
       JWT_SECRET: local-docker-secret
@@ -48,8 +50,8 @@ services:
     restart: on-failure
 
   client:
-    build: ./quick-chat-client
-    container_name: quickchat_client
+    build: ./hangout-hub-client
+    container_name: hangouthub_client
     depends_on:
       - backend
     ports:

@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist/hangout-hub/browser",
+  "framework": "angular",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
