@@ -60,6 +60,6 @@ yarn.lock
 logs/
 *.gz
 
-# Environment files (Keep `.example.env` for reference)
+# Environment files
+.env
 *.env
-src/environments/environment*.ts
