@@ -44,6 +44,12 @@
         <span>{{ loggedInUser?.skills }}</span>
       </div>
     }
+    @if (loggedInUser?.hobbies) {
+      <div class="detail-row">
+        <mat-icon>favorite_border</mat-icon>
+        <span>{{ loggedInUser?.hobbies }}</span>
+      </div>
+    }
     @if (loggedInUser?.portfolio) {
       <div class="detail-row">
         <mat-icon>link</mat-icon>
