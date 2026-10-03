@@ -1,10 +1,8 @@
-<body>
+<div class="login-page">
   <div class="login-container">
-    <form class="login-form" autocomplete="off">
-
-      <!-- App Branding -->
+    <form class="login-form" autocomplete="off" (ngSubmit)="login()">
       <div class="app-brand">
-        <div class="brand-logo">💬</div>
+        <div class="brand-logo">QC</div>
         <h1 class="brand-name">QuickChat</h1>
         <p class="brand-tagline">Connect. Chat. Collaborate.</p>
       </div>
@@ -14,17 +12,15 @@
 
       <div class="form-group">
         <label for="email">Email</label>
-        <input type="email" id="email" name="email" placeholder="Enter your email" [(ngModel)]="username" />
+        <input type="email" id="email" name="email" placeholder="Enter your email" [(ngModel)]="email" />
       </div>
-
       <div class="form-group">
         <label for="password">Password</label>
         <input type="password" id="password" name="password" placeholder="Enter your password" [(ngModel)]="password" />
       </div>
 
-      <button type="submit" (click)="login()">Log In</button>
-
-      <p class="register-link">New to QuickChat? <a [routerLink]="'/register'">Create an account</a></p>
+      <button type="submit" [disabled]="loading">{{ loading ? 'Logging in...' : 'Log In' }}</button>
+      <p class="register-link">New to QuickChat? <a routerLink="/register">Create an account</a></p>
     </form>
   </div>
-</body>
+</div>

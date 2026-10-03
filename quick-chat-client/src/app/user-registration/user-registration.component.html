@@ -1,10 +1,8 @@
-<body>
+<div class="register-page">
   <div class="container">
     <div class="register-box">
-
-      <!-- App Branding -->
       <div class="app-brand">
-        <div class="brand-logo">💬</div>
+        <div class="brand-logo">QC</div>
         <h1 class="brand-name">QuickChat</h1>
         <p class="brand-tagline">Connect. Chat. Collaborate.</p>
       </div>
@@ -12,35 +10,32 @@
       <h2>Create an Account</h2>
       <p class="sub">Join the conversation today</p>
 
-      <form>
+      <form (ngSubmit)="register()">
         <div class="form-group">
           <label for="username">Username</label>
-          <input type="text" id="username" name="username" [(ngModel)]="username" required
+          <input type="text" id="username" name="username" [(ngModel)]="userName" maxlength="50"
             placeholder="Enter your username">
         </div>
-
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" [(ngModel)]="useremail" required placeholder="Enter your email">
+          <input type="email" id="email" name="email" [(ngModel)]="email" placeholder="Enter your email">
         </div>
-
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" [(ngModel)]="password" required
-            placeholder="Enter your password">
+          <input type="password" id="password" name="password" [(ngModel)]="password"
+            placeholder="At least 6 characters">
         </div>
-
         <div class="form-group">
           <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" name="confirm-password" [(ngModel)]="confirmPassword" required
+          <input type="password" id="confirm-password" name="confirm-password" [(ngModel)]="confirmPassword"
             placeholder="Confirm your password">
+          @if (confirmPassword && password !== confirmPassword) {
+            <small class="error-text">Passwords don't match</small>
+          }
         </div>
-
-        <button type="submit" class="btn" [disabled]="disableSubmitButton()" (click)="persistUser()">Create
-          Account</button>
-
-        <p class="login-link">Already have an account? <a [routerLink]="'/login'">Sign in</a></p>
+        <button type="submit" class="btn" [disabled]="disableSubmit()">Create Account</button>
+        <p class="login-link">Already have an account? <a routerLink="/login">Sign in</a></p>
       </form>
     </div>
   </div>
-</body>
+</div>
