@@ -1,9 +1,9 @@
 {
   "name": "quick-chat",
   "private": true,
-  "description": "Local convenience: spawns the full stack via Docker Compose (see README).",
+  "description": "Runs the whole stack with Docker Compose",
   "scripts": {
     "start": "docker compose up --build",
-    "up": "docker compose up"
+    "services": "docker compose up -d postgres redis elasticsearch"
   }
 }

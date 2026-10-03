@@ -29,6 +29,32 @@ services:
     volumes:
       - es-data:/usr/share/elasticsearch/data
 
+  backend:
+    build: ./quick-chat-backend
+    container_name: quickchat_backend
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+    environment:
+      PORT: 8080
+      ALLOWED_ORIGINS: http://localhost:4200
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/quickchat
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      JWT_SECRET: local-docker-secret
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+  client:
+    build: ./quick-chat-client
+    container_name: quickchat_client
+    depends_on:
+      - backend
+    ports:
+      - "4200:80"
+
 volumes:
   postgres-data:
   es-data:

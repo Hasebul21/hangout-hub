@@ -1,16 +1,11 @@
-FROM node:alpine
-
+FROM node:24-alpine AS build
 WORKDIR /app
-
-# Install dependencies
-RUN apk update && apk add --no-cache curl bash
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci
 COPY . .
-RUN npm install --legacy-peer-deps
+RUN npx ng build --configuration development
 
-# Build the application
-RUN npm run build
-# Expose the port the app runs on
-EXPOSE 4200
-# Start the application
-CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "4200"]
-
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist/quick-chat/browser /usr/share/nginx/html
+EXPOSE 80
