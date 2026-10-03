@@ -6,7 +6,7 @@ Live: https://hangout-hub.vercel.app
 
 ## What it does
 
-- Sign up and log in
+- Sign up and log in, or look around as a guest without an account
 - Private chat that updates instantly, with typing status, unread counts and "last seen"
 - Search inside a conversation
 - Posts with likes, dislikes and comments. You can edit or delete your own.

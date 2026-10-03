@@ -15,11 +15,15 @@ The client finds the backend through `apiBaseUrl` in `src/environments/environme
 
 Each folder under `hangout-hub-backend/src` is one Nest module.
 
-- `auth` handles register, login and the JWT guard. Passwords are hashed with bcrypt. A login returns a token that's valid for 7 days, and the client sends it as `Authorization: Bearer <token>`.
+- `auth` handles register, login, guest sessions and the JWT guards. Passwords are hashed with bcrypt. A login returns a token that's valid for 7 days, and the client sends it as `Authorization: Bearer <token>`.
 - `users` covers the account table, profile updates and profile pictures.
 - `posts` holds posts, likes/dislikes and comments.
 - `chat` is the Socket.IO gateway, private messages and who is online.
 - `seed` creates the owner account and the demo content on first start.
+
+### Guests
+
+"Continue as guest" doesn't create an account. The server signs a token with `guest: true` and user id 0. `JwtAuthGuard` marks the request as a guest, and `MembersOnlyGuard` sits on every write route and turns guests away with a 403. The socket gateway lets guests connect so they see who is online, but it doesn't count them as online and won't relay their messages.
 
 ### Database
 
