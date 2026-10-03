@@ -1,134 +1,119 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import {
+  AfterViewChecked, Component, ElementRef, Input, OnChanges, OnDestroy, OnInit, SimpleChanges, ViewChild
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import { Stomp } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
-import { sockJsUrl } from '../ws.util';
+import { ToastrService } from 'ngx-toastr';
+import { Subscription } from 'rxjs';
+import { Message } from '../models/message';
+import { User } from '../models/user';
 import { ChatService } from '../service/chat.service';
-import { forkJoin, map } from 'rxjs';
-import { StompService } from '../service/stomp.service';
-import { AuthService } from '../service/auth.service';
+import { SocketService } from '../service/socket.service';
+import { avatarUrl, useDefaultAvatar } from '../shared/avatar';
+import { timeAgo } from '../shared/time-ago';
 
 @Component({
   selector: 'app-chat-box',
-  imports: [FormsModule, CommonModule, MatIconModule],
+  imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './chat-box.component.html',
   styleUrl: './chat-box.component.scss'
 })
-export class ChatBoxComponent implements OnChanges, OnInit {
+export class ChatBoxComponent implements OnInit, OnChanges, OnDestroy, AfterViewChecked {
+  @Input() me!: User;
+  @Input() selectedUser!: User;
+  @Input() online = false;
+  @Input() lastSeen?: string;
 
-  @Input() selectedUser: any;
-  @Input() loginUser: any;
-  content: string;
-  private stompClient: any | undefined;
-  recivedMessage: string;
-  messages: any[] = [];
-  private isSubscribed: boolean = false;
+  @ViewChild('messageList') messageList?: ElementRef<HTMLDivElement>;
+
+  messages: Message[] = [];
+  content = '';
+  sending = false;
+  avatarUrl = avatarUrl;
+  useDefaultAvatar = useDefaultAvatar;
+
+  private scrollToBottom = false;
+  private subscription?: Subscription;
 
   constructor(private chatService: ChatService,
-    private stompService: StompService, private auth: AuthService) { }
+    private socket: SocketService,
+    private toastr: ToastrService) { }
 
   ngOnInit(): void {
+    this.subscription = this.socket.on<Message>('message').subscribe(message => {
+      if (this.belongsToThisChat(message)) {
+        this.messages.push(message);
+        this.scrollToBottom = true;
+      }
+    });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (this.selectedUser && !this.isSubscribed) {
-      this.connectSocket();
+    if (changes['selectedUser']) {
+      this.loadMessages();
     }
-    const loggedInUser = this.auth.currentUser;
-    forkJoin([
-      this.chatService.getAllChats(this.loginUser.id, this.selectedUser.id),
-      this.chatService.getAllChats(this.selectedUser.id, this.loginUser.id)
-    ])
-      .pipe(
-        map(([messages1, messages2]) => [...messages1, ...messages2])
-      )
-      .subscribe({
-        next: (response) => {
-          this.messages = response.map((message: any) => ({
-            userName: message.senderName,
-            senderProfileImage: message.senderProfileImage,
-            receiverProfileImage: message.receiverProfileImage,
-            content: message.content,
-            time: new Date(message.createdOn),
-            direction: message.senderId == this.loginUser.id ? 'right' : 'left'
-          }));
+  }
 
-          // Sort messages by time (ascending order)
-          this.messages.sort((a, b) => a.time.getTime() - b.time.getTime());
-
-          this.messages = this.messages.map(message => ({
-            ...message,
-            time: message.time.toLocaleTimeString() // Convert to readable format
-          }));
-        },
-        error: (err) => {
-          console.error('Error fetching chat history:', err);
-        },
-      });
+  ngAfterViewChecked(): void {
+    if (this.scrollToBottom && this.messageList) {
+      const el = this.messageList.nativeElement;
+      el.scrollTop = el.scrollHeight;
+      this.scrollToBottom = false;
+    }
   }
 
   ngOnDestroy(): void {
-    // if (this.stompClient) {
-    //   this.stompClient.disconnect();
-    // }
+    this.subscription?.unsubscribe();
   }
 
-
-  onMessageSent() {
-    const tmp = this.content;
-    this.content = '';
-    this.addMessageToChat({
-      userName: this.loginUser.userName,
-      content: tmp,
-      time: new Date().toLocaleTimeString(),
-    }, 'right');
-
-    this.sendMessage(tmp);
+  loadMessages() {
+    this.messages = [];
+    this.chatService.getConversation(this.selectedUser.id).subscribe(messages => {
+      this.messages = messages;
+      this.scrollToBottom = true;
+    });
   }
 
-  sendMessage(content: string) {
-    console.log('Sending message:', content);
-    console.log(this.stompClient);
-    if (this.stompClient) {
-      this.stompClient.send('/app/chat/private/send', { receipt: 'message-receipt' },
-        JSON.stringify({
-          senderName: this.loginUser.userName,
-          senderId: this.loginUser.id,
-          receiverId: this.selectedUser.id,
-          receiverName: this.selectedUser.userName,
-          content: content,
-        }));
-    } else {
-      console.error('❌ STOMP client not connected. Cannot send message.');
+  async send() {
+    const content = this.content.trim();
+    if (!content || this.sending) {
+      return;
+    }
+
+    this.sending = true;
+    try {
+      const result = await this.socket.request<Message & { error?: string }>('send-message', {
+        receiverId: this.selectedUser.id,
+        content
+      });
+      if (result.error) {
+        this.toastr.error(result.error);
+      } else {
+        this.messages.push(result);
+        this.content = '';
+        this.scrollToBottom = true;
+      }
+    } catch {
+      this.toastr.error('Message could not be sent, check your connection');
+    } finally {
+      this.sending = false;
     }
   }
 
-  connectSocket() {
-    const socket = new SockJS(sockJsUrl());
-    this.stompClient = Stomp.over(socket);
-
-    this.stompClient.connect({}, () => {
-      this.isSubscribed = true;
-      this.stompClient.subscribe(`/user/${this.loginUser.id}/message/queue`, response => {
-        console.log('Received message:', response);
-        const received = JSON.parse(response.body);
-        this.recivedMessage = JSON.parse(response.body);
-        this.addMessageToChat(received, 'left');
-      });
-    }, (error) => {
-      console.log(error);
-    });
+  isMine(message: Message): boolean {
+    return message.senderId === this.me.id;
   }
 
-  addMessageToChat(message: any, direction: any) {
-    this.messages.push({
-      userName: (direction === 'right') ? message.userName : message.senderName,
-      content: message.content,
-      profileImage: (direction === 'left') ? `data:image/jpeg;base64,${this.selectedUser.profileImage}` : `${this.loginUser.profileImage}`,
-      time: new Date().toLocaleTimeString(),
-      direction: direction
-    });
+  statusText(): string {
+    if (this.online) {
+      return 'Online';
+    }
+    return this.lastSeen ? `Last seen ${timeAgo(this.lastSeen)}` : 'Offline';
+  }
+
+  private belongsToThisChat(message: Message): boolean {
+    const other = this.selectedUser.id;
+    return message.senderId === other || (message.senderId === this.me.id && message.receiverId === other);
   }
 }

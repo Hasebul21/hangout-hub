@@ -1,23 +1,23 @@
 <app-navbar></app-navbar>
 <div class="chatroom-container">
   <div class="chatroom-body">
-    <!-- User List / Sidebar -->
     <div class="user-list">
-      <app-user-status [loginUser]="loginUser" [activeUsers]="activeUsers"
-        (selectedUserEvent)="onUserChangeEvent($event)">
+      <app-user-status [me]="me" [users]="users" [presence]="presence" [selectedUser]="selectedUser"
+        (selectUser)="onSelectUser($event)">
       </app-user-status>
     </div>
 
-    <!-- Chat Window -->
     <div class="chat-window">
-      <app-chat-box *ngIf="selectedUser; else noUserSelected" [selectedUser]="selectedUser" [loginUser]="loginUser">
-      </app-chat-box>
-      <ng-template #noUserSelected>
+      @if (selectedUser && me) {
+        <app-chat-box [me]="me" [selectedUser]="selectedUser" [online]="isOnline(selectedUser)"
+          [lastSeen]="presence.lastSeen[selectedUser.id]">
+        </app-chat-box>
+      } @else {
         <div class="no-user">
           <mat-icon>chat_bubble_outline</mat-icon>
           <p>Select a contact to start chatting</p>
         </div>
-      </ng-template>
+      }
     </div>
   </div>
 </div>

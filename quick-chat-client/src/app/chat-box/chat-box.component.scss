@@ -41,6 +41,10 @@
     background: #4caf50;
     border-radius: 50%;
     display: inline-block;
+
+    &.offline {
+      background: #bdbdbd;
+    }
   }
 }
 
