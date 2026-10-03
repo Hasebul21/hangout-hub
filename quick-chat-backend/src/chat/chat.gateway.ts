@@ -97,6 +97,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('typing')
+  typing(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { receiverId: number; typing: boolean },
+  ) {
+    const userId = client.data.userId;
+    const receiverId = Number(body?.receiverId);
+    if (!userId || !receiverId) {
+      return;
+    }
+    this.sendToUser(receiverId, 'typing', {
+      userId,
+      typing: Boolean(body.typing),
+    });
+  }
+
   private async broadcastPresence() {
     this.sendToAll('presence', await this.presenceService.getPresence());
   }
