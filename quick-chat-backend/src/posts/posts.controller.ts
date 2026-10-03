@@ -32,6 +32,12 @@ export class PostsController {
     };
   }
 
+  @Get('trending')
+  async trending(@CurrentUserId() userId: number) {
+    const posts = await this.postsService.trending();
+    return posts.map((post) => toPostView(post, userId));
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUserId() userId: number) {
     return toPostView(await this.postsService.findOne(id), userId);
